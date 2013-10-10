@@ -1,12 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO;
 using Microsoft.Win32;
 using System.Diagnostics;
-using System.Xml;
 
 namespace com.tikumo.regis3
 {
@@ -15,6 +10,18 @@ namespace com.tikumo.regis3
     /// </summary>
     public static class Regis3
     {
+        /// <summary>
+        /// Given a registry path, locate the correct root key and return the relative path. For example, when the user gives the absolute registry path
+        /// 
+        /// HKEY_LOCAL_MACHINE\Software\Microsoft
+        /// 
+        /// you really have two parts: HKEY_LOCAL_MACHINE is a "registry hive" root, and "Software\Microsoft" the relative path. 
+        /// </summary>
+        /// <param name="rootPath">absolute registry path</param>
+        /// <param name="rootPathWithoutHive">Returns the relative path</param>
+        /// <param name="use32BitRegistry">True if you want to access the 32-bit regisrty, or false if you want to access the 64-bit registry.</param>
+        /// <param name="remoteMachineName">Name of a remote machine. User must ensure that caller has sufficient privileges to access the key</param>
+        /// <returns>"registry hive" root</returns>
         public static RegistryKey OpenRegistryHive(string rootPath, out string rootPathWithoutHive, bool use32BitRegistry = true, string remoteMachineName = null)
         {
             rootPathWithoutHive = "";
@@ -48,6 +55,11 @@ namespace com.tikumo.regis3
             return null;
         }
 
+        /// <summary>
+        /// Given an (absolute) registry key, delete everything under it including subkeys.
+        /// </summary>
+        /// <param name="sourcePath">Absolute registry path (i.e. one starting with HKEY_LOCAL_MACHINE or something similar)</param>
+        /// <param name="use32BitRegistry">True if you want to access the 32-bit regisrty, or false if you want to access the 64-bit registry.</param>
         public static void DeleteKeyRecursive(string sourcePath, bool use32BitRegistry = true)
         {
             string subKeyName;
