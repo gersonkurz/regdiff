@@ -58,7 +58,7 @@ namespace com.tikumo.regis3
                     errorMessage.Append(">> ");
                     errorMessage.Append(content.Substring(StartIndex, StopIndex - StartIndex));
 
-                    throw new SyntaxErrorException(errorMessage.ToString());
+                    throw new System.Data.SyntaxErrorException(errorMessage.ToString());
                 }
                 ++index;
             }

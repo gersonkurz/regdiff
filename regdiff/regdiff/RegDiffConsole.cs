@@ -123,7 +123,7 @@ namespace com.tikumo.regdiff
                     }
                     Files.Add(importer.Import());
                 }
-                catch (SyntaxErrorException e)
+                catch (System.Data.SyntaxErrorException e)
                 {
                     Console.WriteLine(e.Message);
                     return false;
