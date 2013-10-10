@@ -1,10 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Diagnostics;
-using System.IO;
 
 namespace com.tikumo.regis3.ini
 {
@@ -20,8 +14,9 @@ namespace com.tikumo.regis3.ini
         private string CurrentComment;
         private readonly IniFileOptions Options;
 
-        public IniFileParser(IniFileSection rootSection, IniFileOptions options =
-            IniFileOptions.KeepComments | IniFileOptions.KeepFlat | IniFileOptions.StripEmptyLines)
+        public IniFileParser(
+            IniFileSection rootSection, 
+            IniFileOptions options = IniFileOptions.KeepComments | IniFileOptions.KeepFlat | IniFileOptions.StripEmptyLines)
         {
             RootSection = rootSection;
             Options = options;
@@ -82,56 +77,48 @@ namespace com.tikumo.regis3.ini
         }
 
         #region Parser States
-        private bool ExpectStartOfLine(char c)
+        private void ExpectStartOfLine(char c)
         {
             if (c == '\r')
             {
-                return true;
             }
             else if (c == '\n')
             {
                 ++LineNumber;
-                return true;
             }
             else if (c == '[')
             {
                 Buffer.Clear();
                 NumberOfClosingBracketsExpected = 0;
                 ParserState = ExpectSectionName;
-                return true;
             }
             else if ( (c == ' ') || (c == '\t') )
             {
-                return true;
             }
             else if (c == '#')
             {
                 Buffer.Clear();
                 ParserState = ExpectCommentUntilEndOfLine;
-                return true;
             }
             else if (c == ';')
             {
                 Buffer.Clear();
                 ParserState = ExpectCommentUntilEndOfLine;
-                return true;
             }
             else
             {
                 ParserState = ExpectValueNameDefinition;
                 Buffer.Clear();
                 Buffer.Append(c);
-                return true;
             }
         }
 
-        private bool ExpectSectionName(char c)
+        private void ExpectSectionName(char c)
         {
             if (c == '[')
             {
                 ++NumberOfClosingBracketsExpected;
                 Buffer.Append(c);
-                return true;
             }
             else if (c == ']')
             {
@@ -140,73 +127,62 @@ namespace com.tikumo.regis3.ini
                     CurrentSection = CreateSectionFromName(Buffer.ToString());
                     Buffer.Clear();
                     ParserState = ExpectCarriageReturn;
-                    return true;
                 }
                 else if (NumberOfClosingBracketsExpected > 0)
                 {
                     --NumberOfClosingBracketsExpected;
                     Buffer.Append(c);
-                    return true;
                 }
                 else
                 {
-                    Trace.Assert(false);
-                    return false;
+                    throw SyntaxError("Too many closing square brackets");
                 }
             }
             else
             {
                 Buffer.Append(c);
-                return true;
             }
         }
 
-        private bool ExpectCarriageReturn(char c)
+        private void ExpectCarriageReturn(char c)
         {
             if (c == '\r')
             {
                 ParserState = ExpectStartOfLine;
-                return true;
             }
             else if (c == ' ' || c == '\t')
             {
-                return true;
             }
             else if (c == '#')
             {
                 Buffer.Clear();
                 ParserState = ExpectCommentUntilEndOfLine;
-                return true;
             }
             else if (c == ';')
             {
                 Buffer.Clear();
                 ParserState = ExpectCommentUntilEndOfLine;
-                return true;
             }
             else
             {
-                Trace.TraceError("ERROR, expected carriage return but got '{0}' instead", c);
-                return false;
+                throw SyntaxError("ERROR, expected carriage return but got '{0}' instead", c);
             }
         }
 
-        private bool ExpectNewline(char c)
+        private void ExpectNewline(char c)
         {
             if (c == '\n')
             {
                 ++LineNumber;
                 ParserState = ExpectStartOfLine;
-                return true;
             }
             else
             {
-                Trace.TraceError("ERROR, expected newline but got '{0}' instead", c);
-                return false;
+                throw SyntaxError("ERROR, expected newline but got '{0}' instead", c);
             }
         }
 
-        private bool ExpectCommentUntilEndOfLine(char c)
+        private void ExpectCommentUntilEndOfLine(char c)
         {
             if (c == '\r')
             {
@@ -219,38 +195,33 @@ namespace com.tikumo.regis3.ini
             {
                 Buffer.Append(c);
             }
-            return true;
         }
 
-        private bool ExpectValueNameDefinition(char c)
+        private void ExpectValueNameDefinition(char c)
         {
             if (c == '=')
             {
                 CurrentValueName = Buffer.ToString().Trim();
                 Buffer.Clear();
                 ParserState = ExpectValueDataDefinition;
-                return true;
             }
             else if (c == '\\')
             {
                 ParserState = ExpectQuotedCharInStringValueNameDefinition;
-                return true;
             }
             else
             {
                 Buffer.Append(c);
-                return true;
             }
         }
 
-        private bool ExpectQuotedCharInStringValueNameDefinition(char c)
+        private void ExpectQuotedCharInStringValueNameDefinition(char c)
         {
             Buffer.Append(c);
             ParserState = ExpectValueNameDefinition;
-            return true;
         }
-        
-        private bool ExpectValueDataDefinition(char c)
+
+        private void ExpectValueDataDefinition(char c)
         {
             if (c == '\r')
             {
@@ -258,31 +229,26 @@ namespace com.tikumo.regis3.ini
                 AddNewLine();
                 Buffer.Clear();
                 ParserState = ExpectNewline;
-                return true;
             }
             else if (c == '#')
             {
                 CurrentValueData = Buffer.ToString().Trim();
                 Buffer.Clear();
                 ParserState = ExpectCommentUntilEndOfLine;
-                return true;
             }
             else if (c == ';')
             {
                 CurrentValueData = Buffer.ToString().Trim();
                 Buffer.Clear();
                 ParserState = ExpectCommentUntilEndOfLine;
-                return true;
             }
             else if (c == '\\')
             {
                 ParserState = ExpectQuotedCharInStringValueNameDefinition;
-                return true;
             }
             else
             {
                 Buffer.Append(c);
-                return true;
             }
         }
         #endregion

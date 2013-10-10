@@ -1,12 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO;
-using Microsoft.Win32;
-using System.Diagnostics;
-using System.Xml;
 using System.Globalization;
 
 namespace com.tikumo.regis3
@@ -74,177 +66,151 @@ namespace com.tikumo.regis3
         }
 
         #region Parser States
-        private bool ExpectHeader(char c)
+        private void ExpectHeader(char c)
         {
             if (c == '\r')
             {
                 string header = Buffer.ToString();
                 if( !header.Equals(HeaderId) )
                 {
-                    Trace.TraceError("ERROR: .REG file expected header: '{0}', got '{1}' instead", HeaderId, header);
-                    return false;
+                    throw SyntaxError("ERROR: .REG file expected header: '{0}', got '{1}' instead", HeaderId, header);
                 }
                 ParserState = ExpectNewline;
-                return true;
             }
             else
             {
                 Buffer.Append(c);
-                return true;
             }
         }
 
-        private bool ExpectCarriageReturn(char c)
+        private void ExpectCarriageReturn(char c)
         {
             if (c == '\r')
             {
                 ParserState = ExpectStartOfLine;
-                return true;
             }
             else if (c == ' ' || c == '\t' )
             {
-                return true;
             }
             else if (c == '#')
             {
                 ParserState = ExpectCommentUntilEndOfLine;
-                return true;
             }
             else if (c == ';')
             {
                 ParserState = ExpectCommentUntilEndOfLine;
-                return true;
             }
             else
             {
-                Trace.TraceError("ERROR, expected carriage return but got '{0}' instead", c);
-                return false;
+                throw SyntaxError("ERROR, expected carriage return but got '{0}' instead", c);
             }
         }
 
-        private bool ExpectNewline(char c)
+        private void ExpectNewline(char c)
         {
             if (c == '\n')
             {
                 ++LineNumber;
                 ParserState = ExpectStartOfLine;
-                return true;
             }
             else
             {
-                Trace.TraceError("ERROR, expected newline but got '{0}' instead", c); 
-                return false;
+                throw SyntaxError("ERROR, expected newline but got '{0}' instead", c); 
             }
         }
 
-        private bool ExpectStartOfLine(char c)
+        private void ExpectStartOfLine(char c)
         {
             if (c == '\r')
             {
-                return true;
             }
             else if (c == '\n')
             {
                 ++LineNumber;
-                return true;
             }
             else if (c == '[')
             {
                 Buffer.Clear();
                 NumberOfClosingBracketsExpected = 0;
                 ParserState = ExpectKeyPath;
-                return true;
             }
             else if (c == '@')
             {
                 CurrentValue = CurrentKey.FindOrCreateValue(null);
                 ParserState = ExpectEqualSign;
-                return true;
             }
             else if (c == '"')
             {
                 Buffer.Clear();
                 ParserState = ExpectValueNameDefinition;
-                return true;
             }
             else if ((c == '#') && AllowHashtagComments)
             {
                 Buffer.Clear();
                 ParserState = ExpectCommentUntilEndOfLine;
-                return true;
             }
             else if ((c == ';') && AllowSemicolonComments)
             {
                 Buffer.Clear();
                 ParserState = ExpectCommentUntilEndOfLine;
-                return true;
             }
             else
             {
-                Trace.TraceError("ERROR, don't support values yet; '{0}'", c);
-                return false;
+                throw SyntaxError("ERROR, don't support values yet; '{0}'", c);
             }
         }
 
-        private bool ExpectCommentUntilEndOfLine(char c)
+        private void ExpectCommentUntilEndOfLine(char c)
         {
             if (c == '\n')
             {
                 ++LineNumber;
                 ParserState = ExpectStartOfLine;
             }
-            return true;
         }
 
-        private bool ExpectValueNameDefinition(char c)
+        private void ExpectValueNameDefinition(char c)
         {
             if (c == '"')
             {
                 CurrentValue = CurrentKey.FindOrCreateValue(Buffer.ToString());
                 ParserState = ExpectEqualSign;
-                return true;
             }
             else if (c == '\\')
             {
                 ParserState = ExpectQuotedCharInStringValueNameDefinition;
-                return true;
             }
             else
             {
                 Buffer.Append(c);
-                return true;
             }
         }
 
-        private bool ExpectQuotedCharInStringValueNameDefinition(char c)
+        private void ExpectQuotedCharInStringValueNameDefinition(char c)
         {
             Buffer.Append(c);
             ParserState = ExpectValueNameDefinition;
-            return true;
         }
 
-        private bool ExpectEqualSign(char c)
+        private void ExpectEqualSign(char c)
         {
             if (c == '=')
             {
                 Buffer.Clear();
                 ParserState = ExpectStartOfValueDefinition;
-                return true;
             }
             else
             {
-                Trace.TraceError("ERROR, expected '=', got '{0}' instead.", c);
-                return false;
+                throw SyntaxError("ERROR, expected '=', got '{0}' instead.", c);
             }
         }
 
-        private bool ExpectStartOfValueDefinition(char c)
+        private void ExpectStartOfValueDefinition(char c)
         {
             if (c == '"')
             {
                 ParserState = ExpectStringValueDefinition;
                 Buffer.Clear();
-                return true;
             }
             else if (c == ':')
             {
@@ -253,7 +219,6 @@ namespace com.tikumo.regis3
                 if (typename.Equals("dword", StringComparison.OrdinalIgnoreCase))
                 {
                     ParserState = ExpectHexIntegerValue;
-                    return true;
                 }
                 else if( typename.StartsWith("hex(") && typename.EndsWith(")") )
                 {
@@ -263,29 +228,27 @@ namespace com.tikumo.regis3
                         int kindValueAsInt = 0;
                         if (!int.TryParse(tokens[1], NumberStyles.HexNumber, null, out kindValueAsInt))
                         {
-                            Trace.TraceError("ERROR, '{0}' is not a valid hex() kind ", tokens[1]);
-                            return false;
+                            throw SyntaxError("ERROR, '{0}' is not a valid hex() kind ", tokens[1]);
                         }
                         RegValueEntryKind kind = (RegValueEntryKind)kindValueAsInt;
                         Buffer.Clear();
                         CurrentDataKind = kind;
                         ParserState = ExpectStartOfMultiByteValueDefinition;
-                        return true;
                     }
                 }
                 else if (typename.Equals("hex"))
                 {
                     CurrentDataKind = RegValueEntryKind.Binary;
                     ParserState = ExpectStartOfMultiByteValueDefinition;
-                    return true;
                 }
-                Trace.TraceError("ERROR, value type '{0}' not supported", typename);
-                return false;
+                else
+                {
+                    throw SyntaxError("ERROR, value type '{0}' not supported", typename);
+                }
             }
             else
             {
                 Buffer.Append(c);
-                return true;
             }
         }
 
@@ -298,7 +261,7 @@ namespace com.tikumo.regis3
             return false;
         }
 
-        private bool DecodeCurrentHexValue()
+        private void DecodeCurrentHexValue()
         {
             int result = 0;
             string value = Buffer.ToString();
@@ -309,136 +272,119 @@ namespace com.tikumo.regis3
                 CurrentValue.SetIntValue(result);
                 ParserState = ExpectNewline;
                 Buffer.Clear();
-                return true;
             }
-            Trace.TraceError("ERROR, '{0}' is not a valid integer", value);
-            return false;
+            else
+            {
+                throw SyntaxError("ERROR, '{0}' is not a valid integer", value);
+            }
         }
 
-        private bool ExpectHexIntegerValue(char c)
+        private void ExpectHexIntegerValue(char c)
         {
             if (c == '\r')
             {
-                return DecodeCurrentHexValue();
+                DecodeCurrentHexValue();
             }
             else if ("0123456789ABCDEFabcdef".IndexOf(c) >= 0)
             {
                 Buffer.Append(c);
-                return true;
             }
             else if (IsWhitespace(c))
             {
-                return true;
             }
             else if ((c == '#') && AllowHashtagComments)
             {
-                if (!DecodeCurrentHexValue())
-                    return false;
-
+                DecodeCurrentHexValue();
                 ParserState = ExpectCommentUntilEndOfLine;
-                return true;
             }
             else if ((c == ';') && AllowHashtagComments)
             {
-                if (!DecodeCurrentHexValue())
-                    return false;
-
+                DecodeCurrentHexValue();
                 ParserState = ExpectCommentUntilEndOfLine;
-                return true;
             }
             else if ((c == '$') && AllowVariableNamesForNonStringVariables)
             {
                 Buffer.Append(c);
                 ParserState = ExpectVariableDefinedHexIntegerValue;
-                return true;
             }
             else
             {
-                Trace.TraceError("ERROR, '{0}' is not a valid hex digit", c);
-                return false;
+                throw SyntaxError("ERROR, '{0}' is not a valid hex digit", c);
             }
         }
 
-        private bool DecodeCurrentVariableDefinedHexValue()
+        private void DecodeCurrentVariableDefinedHexValue()
         {
             CurrentValue.SetEscapedIntValue(Buffer.ToString());
             ParserState = ExpectNewline;
             Buffer.Clear();
-            return true;
         }
 
-        private bool ExpectVariableDefinedHexIntegerValue(char c)
+        private void ExpectVariableDefinedHexIntegerValue(char c)
         {
             if (c == '\r')
             {
-                return DecodeCurrentVariableDefinedHexValue();
+                DecodeCurrentVariableDefinedHexValue();
             }
             else if ((c == '#') && AllowHashtagComments)
             {
-                if (!DecodeCurrentVariableDefinedHexValue())
-                    return false;
-
+                DecodeCurrentVariableDefinedHexValue();
                 ParserState = ExpectCommentUntilEndOfLine;
-                return true;
             }
             else if ((c == ';') && AllowHashtagComments)
             {
-                if (!DecodeCurrentVariableDefinedHexValue())
-                    return false;
-
+                DecodeCurrentVariableDefinedHexValue();
                 ParserState = ExpectCommentUntilEndOfLine;
-                return true;
             }
             else
             {
                 Buffer.Append(c);
-                return true;
             }
         }
 
-        private bool ExpectStringValueDefinition(char c)
+        private void ExpectStringValueDefinition(char c)
         {
             if (c == '"')
             {
                 CurrentValue.SetStringValue(Buffer.ToString());
                 ParserState = ExpectCarriageReturn;
-                return true;
             }
             else if (c == '\\')
             {
                 ParserState = ExpectQuotedCharInStringValueDefinition;
-                return true;
             }
             else
             {
                 Buffer.Append(c);
-                return true;
             }
         }
 
-        private bool ExpectQuotedCharInStringValueDefinition(char c)
+        private void ExpectQuotedCharInStringValueDefinition(char c)
         {
             Buffer.Append(c);
             ParserState = ExpectStringValueDefinition;
-            return true;
         }
 
-        private bool ExpectStartOfMultiByteValueDefinition(char c)
+        private void ExpectStartOfMultiByteValueDefinition(char c)
         {
             if (c == '\r')
             {
-                return ExpectMultiByteValueDefinition(c);
+                ExpectMultiByteValueDefinition(c);
             }
-            int result;
-            string value = c.ToString();
-            if (int.TryParse(value, NumberStyles.HexNumber, null, out result))
+            else
             {
-                Buffer.Append(c);
-                ParserState = ExpectMultiByteValueDefinition;
-                return true;
+                int result;
+                string value = c.ToString();
+                if (int.TryParse(value, NumberStyles.HexNumber, null, out result))
+                {
+                    Buffer.Append(c);
+                    ParserState = ExpectMultiByteValueDefinition;
+                }
+                else
+                {
+                    throw SyntaxError("ERROR, expected byte-oriented hex(2) definition");
+                }
             }
-            Trace.TraceError("ERROR, expected byte-oriented hex(2) definition");
-            return false;
         }
 
         private byte[] CreateByteArrayFromString(string input)
@@ -446,7 +392,6 @@ namespace com.tikumo.regis3
             if ((input.Length % 2) != 0)
             {
                 input += "0";
-                Trace.Assert(input.Length % 2 == 0);
             }
             byte[] result = new byte[input.Length / 2];
             int j = 0;
@@ -468,94 +413,77 @@ namespace com.tikumo.regis3
             return result;
         }
 
-        private bool ExpectMultiByteValueDefinition(char c)
+        private void ExpectMultiByteValueDefinition(char c)
         {
             if (c == ',')
             {
-                // decode and feed current byte
-                return true;
             }
             else if (c == '\\')
             {
                 ParserState = ExpectNewlineFollowedByMultiByteValueDefinition;
-                return true;
             }
             else if ((c == ' ') || (c == '\t'))
             {
-                // ignore whitespace
-                return true;
             }
             else if( c == '\r' )
             {
                 CurrentValue.SetBinaryType(CurrentDataKind, CreateByteArrayFromString(Buffer.ToString()));
                 ParserState = ExpectNewline;
-                return true;
             }
             else if (c == '\n')
             {
-                Trace.Assert(false);
-                return false;
+                throw SyntaxError("Got \\n without \\r - registry file is not properly encoded");
             }
             else
             {
                 Buffer.Append(c);
-                return true;
             }
         }
 
-        private bool ExpectNewlineFollowedByMultiByteValueDefinition(char c)
+        private void ExpectNewlineFollowedByMultiByteValueDefinition(char c)
         {
             if (c == '\r')
             {
-                return true;
             }
             else if (c == '\n')
             {
                 ++LineNumber;
                 ParserState = ExpectMultiByteValueDefinition;
-                return true;
             }
             else
             {
-                Trace.TraceError("ERROR, expected newline to follow trailing backslash");
-                return false;
+                throw SyntaxError("ERROR, expected newline to follow trailing backslash");
             }
         }
 
-        private bool ExpectKeyPath(char c)
+        private void ExpectKeyPath(char c)
         {
             if (c == '[')
             {
                 ++NumberOfClosingBracketsExpected;
                 Buffer.Append(c);
-                return true;
             }
             else if (c == ']')
             {
                 if (0 == NumberOfClosingBracketsExpected)
                 {
                     CurrentKey = Result.FindOrCreateKey(Buffer.ToString());
-                    Trace.Assert(CurrentKey != null);
                     ParserState = ExpectCarriageReturn;
-                    return true;
                 }
                 else if (NumberOfClosingBracketsExpected > 0)
                 {
                     --NumberOfClosingBracketsExpected;
                     Buffer.Append(c);
-                    return true;
                 }
                 else
                 {
-                    Trace.Assert(false);
-                    return false;
+                    throw SyntaxError("Too many closing square brackets");
                 }
                 
             }
             else
             {
                 Buffer.Append(c);
-                return true;
             }
         }
 
