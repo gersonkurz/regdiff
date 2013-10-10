@@ -65,7 +65,6 @@
     <Compile Include="RegFileImporter.cs" />
     <Compile Include="RegFileFormat4Importer.cs" />
     <Compile Include="RegistryWriteOptions.cs" />
-    <Compile Include="RegSyntaxErrorException.cs" />
     <Compile Include="RegValueEntry.cs" />
     <Compile Include="RegFileFormat5Importer.cs" />
     <Compile Include="XmlRegFileExporter.cs" />
