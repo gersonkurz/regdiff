@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "regdiff", "regdiff\regdiff.csproj", "{D142A61D-8021-4401-A760-4E1E2BF19B91}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "regis3", "regis3\regis3.csproj", "{BD4EDF2F-A46C-49BD-B32B-67F27C4A4E0C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D142A61D-8021-4401-A760-4E1E2BF19B91}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D142A61D-8021-4401-A760-4E1E2BF19B91}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D142A61D-8021-4401-A760-4E1E2BF19B91}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D142A61D-8021-4401-A760-4E1E2BF19B91}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BD4EDF2F-A46C-49BD-B32B-67F27C4A4E0C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BD4EDF2F-A46C-49BD-B32B-67F27C4A4E0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BD4EDF2F-A46C-49BD-B32B-67F27C4A4E0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BD4EDF2F-A46C-49BD-B32B-67F27C4A4E0C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
