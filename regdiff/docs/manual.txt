@@ -1,0 +1,128 @@
+= REGDIFF - Version 4.0 =
+
+regdiff is a small command line tool to compare two registry files, export the registry, merge .REG files and much more.
+Version 4.0 has been completely rewritten in C#, with a much better parser than before (I always say that, don't I?).
+
+`regdiff.exe` is freeware with a very liberal BSD-style license (i.e. free for any use including commercial).
+
+== Download ==
+
+You can [http://regdiff.googlecode.com/svn/trunk/regdiff/releases/regdiff-4.0.zip download a binary version 4.0 here].
+The full sourcecode is available [http://code.google.com/p/regdiff/source/browse on Google Code]
+
+== Features == 
+
+The marketing department tells me to write about its most outstanding features, so here they are:
+
+ * Compare, diff and merge .REG files
+ * Compare, diff and merge registry values encoded in .XML files
+ * Compare, diff and merge the registry
+ * Support for both ANSI and UNICODE style .REG files
+ * It's free!
+
+== How to compare two <tt>.REG</tt> files ==
+The most basic usage is just specifying two filenames.
+
+<em>Example:</em>
+<pre>
+regdiff.exe foo.reg bar.reg
+</pre>
+
+== How to compare a registry key with a given <tt>.REG</tt> file ==
+You can use <tt>regdiff.exe</tt> to compare any registry key with 
+a given <tt>.REG</tt> file.
+
+<em>Example:</em>
+<pre>
+regdiff.exe HKEY_LOCAL_MACHINE\SOFTWARE hklm_software.reg
+</pre>
+
+== How to create a diff file ==
+You can use <tt>regdiff.exe</tt> to create a registry file that contains only the differences between to files using the /diff option.
+If you are comparing two files A and B, then the diff file will follow these rules:
+
+ * if a key is missing in A, it is to be added
+ * if a key is missing in B, it is to be removed
+ * if a value is missing in A, it is to be added
+ * if a value is missing in B, it is to be removed
+ * if a value has changed, use the data from B 
+ 
+<em>Example:</em>
+<pre>
+regdiff.exe HKEY_LOCAL_MACHINE\SOFTWARE hklm_software.reg /diff differences.reg
+</pre>
+
+== How to create a merge file ==
+You can use <tt>regdiff.exe</tt> to create a registry file that contains the merged content of two files using the /merge option.
+If you are comparing two files A and B, then the merge file will follow these rules:
+
+ * includes all information from key B
+ * if a key exists in A but is missing in B, it is to be removed
+ * if a value exists in A but is missing in B, it is to be removed
+ * if a value has changed from A relative to B, use the data from B 
+ 
+<em>Example:</em>
+<pre>
+regdiff.exe HKEY_LOCAL_MACHINE\SOFTWARE hklm_software.reg /merge merged.reg
+</pre>
+
+== How to export a <tt>.REG</tt> file ==
+You can use <tt>regdiff.exe</tt> to create a <tt>.REG</tt> file from
+an existing registry key
+
+<em>Example:</em>
+<pre>
+regdiff.exe HKEY_LOCAL_MACHINE\SOFTWARE /merge hklm_software.reg
+</pre>
+
+== How to create a sorted <tt>.REG</tt> file ==
+
+You can use <tt>regdiff.exe</tt> to create a sorted <tt>.REG</tt> file. 
+Here, "sorted" means that all keys and all values inside keys are
+alphanumerically sorted (not case-sensitive). To do so, you must specify
+a single input file and use the <tt>/merge</tt> option.
+
+<em>Example:</em>
+<pre>
+regdiff.exe example.reg /merge sorted_example.reg
+</pre>
+
+== How to compare the current registry settings with a given <tt>.REG</tt> file ==
+
+You can use <tt>regdiff.exe</tt> to compare the current registry with 
+a given <tt>.REG</tt> file using the <tt>/registry</tt> option.
+
+<em>Example:</em>
+<pre>
+regdiff.exe hklm_software.reg /registry
+</pre>
+
+== The difference between the HKEY_LOCAL_MACHINE-syntax and the <tt>/registry</tt> parameter ==
+<ul>
+<li>The <tt>/registry</tt> parameter checks all registry keys that are <b>mentioned in the <tt>.REG</tt></b> file.</li>
+<li>The <tt>HKEY_LOCAL_MACHINE-syntax</tt> syntax checks all registry keys that <b>exist under the given registry key</b>.</li>
+</ul>
+
+<em>Example:</em> say, you have a registry that has the following keys:
+<pre>
+HKEY_LOCAL_MACHINE\Software\foo
+HKEY_LOCAL_MACHINE\Software\foo\test\one
+HKEY_LOCAL_MACHINE\Software\foo\test\two
+HKEY_LOCAL_MACHINE\Software\foo\hidden
+</pre>
+You want to compare this registry with a <tt>.REG</tt> file that contains
+<pre>
+HKEY_LOCAL_MACHINE\Software\foo\test
+</pre>
+Here, using <tt>/r</tt> will not find <tt>foo\hidden</tt>, whereas <tt>HKEY_LOCAL_MACHINE\Software\foo</tt> will do so.
+
+== The <tt>.REG</tt> file format ==
+The default file format is the unicode format introduced with Windows 2000.
+Its header reads <tt>Windows Registry Editor Version 5.00</tt>. You can also
+use the ANSI format <tt>REGEDIT4</tt> used in earlier versions of Windows NT 4 
+by using the <tt>/4</tt> option.
+<em>Example:</em> Export the registry in REGEDIT4 format:
+<pre>
+regdiff.exe HKEY_LOCAL_MACHINE\SOFTWARE /4 /m hklm_software.reg
+</pre>
+<em>Note:</em> The <tt>/4</tt> option can be combined with any of the above options.
