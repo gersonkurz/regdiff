@@ -1,31 +1,87 @@
-﻿using System;
+﻿// Copyright (c) 2013, Gerson Kurz
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+//
+// Redistributions of source code must retain the above copyright notice, this list
+// of conditions and the following disclaimer. Redistributions in binary form must
+// reproduce the above copyright notice, this list of conditions and the following
+// disclaimer in the documentation and/or other materials provided with the distribution.
+// 
+// Neither the name regdiff nor the names of its contributors may be used to endorse
+// or promote products derived from this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+// IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+// INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+// NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Diagnostics;
 using System.IO;
 using Microsoft.Win32;
 using System.Security.AccessControl;
 using System.Security.Principal;
-using System.Security;
 
 namespace com.tikumo.regis3
 {
+    /// <summary>
+    /// This class represents a registry key in memory
+    /// </summary>
     public class RegKeyEntry
     {
+        /// <summary>
+        /// Name of the key (not the complete path name: use the Path member for that)
+        /// </summary>
         public readonly string Name;
+
+        /// <summary>
+        /// Parent key or null if this is a root key
+        /// </summary>
         public RegKeyEntry Parent { get; protected set; }
+
+        /// <summary>
+        /// Subkeys relative to this key
+        /// </summary>
         public readonly Dictionary<string, RegKeyEntry> Keys = new Dictionary<string, RegKeyEntry>();
+
+        /// <summary>
+        /// Values in this key
+        /// </summary>
         public readonly Dictionary<string, RegValueEntry> Values = new Dictionary<string, RegValueEntry>();
+
+        /// <summary>
+        /// Default value or null if undefined
+        /// </summary>
         public RegValueEntry DefaultValue;
+
+        /// <summary>
+        /// Flag indicating wether the .REG file actually asks to REMOVE this value, rather than add it.
+        /// </summary>
         public bool RemoveFlag;
 
+        /// <summary>
+        /// The default constructor creates an empty - unnamed - registry key.
+        /// </summary>
         protected RegKeyEntry()
             :   this(null, null)
         {
         }
 
+        /// <summary>
+        /// This constructor creates a named registry key, relative to an existing parent
+        /// </summary>
+        /// <param name="parent"></param>
+        /// <param name="name"></param>
         public RegKeyEntry(RegKeyEntry parent, string name)
         {
             Parent = parent;
@@ -61,6 +117,11 @@ namespace com.tikumo.regis3
             }
         }
 
+        /// <summary>
+        /// When creating a diff/merge file, asks the key to remove a subkey based on an existing key
+        /// </summary>
+        /// <param name="removeThis">Existing key</param>
+        /// <returns>Key in the diff/merge file with the RemoveFlag set</returns>
         public RegKeyEntry AskToRemoveKey(RegKeyEntry removeThis)
         {
             RegKeyEntry key = AskToAddKey(removeThis);
@@ -68,6 +129,11 @@ namespace com.tikumo.regis3
             return key;
         }
 
+        /// <summary>
+        /// When creating a diff/merge file, asks the key to create a subkey based on an existing key
+        /// </summary>
+        /// <param name="addThis">Existing key</param>
+        /// <returns>Key in the diff/merge file</returns>
         public RegKeyEntry AskToAddKey(RegKeyEntry addThis)
         {
             RegKeyEntry key = FindOrCreateKey(addThis.Path);
@@ -91,6 +157,11 @@ namespace com.tikumo.regis3
             return key;
         }
 
+        /// <summary>
+        /// When creating a diff/merge file, asks the key to remove a value based on an existing value
+        /// </summary>
+        /// <param name="key">existing key</param>
+        /// <param name="value">existing value</param>
         public void AskToRemoveValue(RegKeyEntry key, RegValueEntry value)
         {
             key = AskToAddKey(key);
@@ -107,6 +178,11 @@ namespace com.tikumo.regis3
             }
         }
 
+        /// <summary>
+        /// When creating a diff/merge file, asks the key to add a value based on an existing value
+        /// </summary>
+        /// <param name="key">existing key</param>
+        /// <param name="value">existing value</param>
         public void AskToAddValue(RegKeyEntry key, RegValueEntry value)
         {
             key = AskToAddKey(key);
@@ -121,6 +197,9 @@ namespace com.tikumo.regis3
             }
         }
 
+        /// <summary>
+        /// Return the complete (recursive) path of this key
+        /// </summary>
         public string Path
         {
             get
@@ -157,11 +236,20 @@ namespace com.tikumo.regis3
             }
         }
 
+        /// <summary>
+        /// Create a string description of this instance
+        /// </summary>
+        /// <returns>String description of this instance</returns>
         public override string ToString()
         {
             return Name;
         }
 
+        /// <summary>
+        /// Find or create a named registry value
+        /// </summary>
+        /// <param name="name">Name of the registry value</param>
+        /// <returns>Newly created registry value or null if it cannot be created</returns>
         public RegValueEntry FindOrCreateValue(string name)
         {
             string key = null;
@@ -186,6 +274,11 @@ namespace com.tikumo.regis3
             return result;
         }
 
+        /// <summary>
+        /// Find or create a subkey relative to this one
+        /// </summary>
+        /// <param name="path">Subkey path relative to this one</param>
+        /// <returns>Newly created subkey</returns>
         public RegKeyEntry FindOrCreateKey(string path)
         {
             Trace.Assert(!string.IsNullOrEmpty(path));
@@ -212,6 +305,10 @@ namespace com.tikumo.regis3
             return result;
         }
 
+        /// <summary>
+        /// Write the content of this key to an output stream in .REG file format
+        /// </summary>
+        /// <param name="output">Output stream</param>
         public void WriteRegFileFormat(TextWriter output)
         {
             List<string> names;
@@ -263,6 +360,9 @@ namespace com.tikumo.regis3
             return null;
         }
 
+        /// <summary>
+        /// Helper function: RegistrySecurity object representing "Full control for the Everyone group" 
+        /// </summary>
         public static RegistrySecurity AllAccessForEveryone
         {
             get
@@ -287,7 +387,11 @@ namespace com.tikumo.regis3
             }
         }
 
-
+        /// <summary>
+        /// Write the contents of this object back to the registry (possibly recursively)
+        /// </summary>
+        /// <param name="registryWriteOptions">Options for writing to the registry</param>
+        /// <param name="env">Optional handler for environment variable replacement</param>
         public void WriteToTheRegistry(RegistryWriteOptions registryWriteOptions, RegEnvReplace env)
         {
             if ((registryWriteOptions & RegistryWriteOptions.Recursive) != 0)

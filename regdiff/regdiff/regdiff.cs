@@ -1,4 +1,29 @@
-﻿using System;
+﻿// Copyright (c) 2013, Gerson Kurz
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+//
+// Redistributions of source code must retain the above copyright notice, this list
+// of conditions and the following disclaimer. Redistributions in binary form must
+// reproduce the above copyright notice, this list of conditions and the following
+// disclaimer in the documentation and/or other materials provided with the distribution.
+// 
+// Neither the name regdiff nor the names of its contributors may be used to endorse
+// or promote products derived from this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+// IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+// INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+// NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,7 +36,20 @@ using System.Security.AccessControl;
 
 namespace com.tikumo.regdiff
 {
-    class RegDiffConsole
+    /// <summary>
+    /// This program is a small command line tool to compare two registry files, export the registry, merge .REG files and much more. 
+    /// Refer to http://p-nand-q.com/download/regdiff.html for a detailed manual.
+    /// Refer to http://code.google.com/p/regdiff/ for the complete sourcecode.
+    /// Copyright (C) 2013 by Gerson Kurz
+    /// BSD-Licensed
+    /// </summary>
+    /// <todo>support XML import </todo>
+    /// <todo>support remove-keys/values when reading .REG File format</todo>
+    /// <todo>export doesn't write blanks in front of hex dumps</todo>
+    /// <todo>throw syntax error if $$ option cannot be found</todo>
+    /// <todo>LATER: hex dump format to mimic regedit format</todo>
+    /// <todo>LATER: support multiple locale strings</todo>
+    class regdiff
     {
         private RegFileImportOptions Options;
         private InputArgs Args;
@@ -26,12 +64,7 @@ namespace com.tikumo.regdiff
         private string MergeFile;
         private string ParamsFilename;
         private readonly List<RegKeyEntry> Files = new List<RegKeyEntry>();
-
-        /// <summary>
-        /// This program finds an executable on the PATH. It can also find other stuff on the path, but 
-        /// mostly it finds the executable.s
-        /// </summary>
-        /// <param name="args"></param>
+        
         private int Run(string[] args)
         {
             Options = RegFileImportOptions.IgnoreWhitespaces;
@@ -40,13 +73,6 @@ namespace com.tikumo.regdiff
                 "REGDIFF",
                 string.Format("Version {0}\r\nFreeware written by Gerson Kurz (http://tikumo.com)",
                 AppVersion.Get()));
-
-            // TODO: support XML import 
-            // TODO: support remove-keys/values when reading .REG File format
-            // TODO: Export doesn't write blanks in front of hex dumps
-
-            // LATER: hex dump format to mimic regedit format
-            // LATER: support multiple locale strings
             
             Args.Add(InputArgType.RemainingParameters, "FILE {FILE}", null, Presence.Required, "one or more .REG files");
             Args.Add(InputArgType.Parameter, "merge", null, Presence.Optional, "create merged output file");
@@ -251,8 +277,7 @@ namespace com.tikumo.regdiff
 
         public static int Main(string[] args)
         {
-            string[] test = new string[] { "F:\\test.reg", "/params", "vars.ini", "/write", "/allaccess"};
-            return new RegDiffConsole().Run(test);
+            return new regdiff().Run(args);
         }
     }
 }

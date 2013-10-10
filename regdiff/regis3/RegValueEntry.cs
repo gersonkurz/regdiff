@@ -1,20 +1,65 @@
-﻿using System;
+﻿// Copyright (c) 2013, Gerson Kurz
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+//
+// Redistributions of source code must retain the above copyright notice, this list
+// of conditions and the following disclaimer. Redistributions in binary form must
+// reproduce the above copyright notice, this list of conditions and the following
+// disclaimer in the documentation and/or other materials provided with the distribution.
+// 
+// Neither the name regdiff nor the names of its contributors may be used to endorse
+// or promote products derived from this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+// IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+// INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+// NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Microsoft.Win32;
 
 namespace com.tikumo.regis3
 {
+    /// <summary>
+    /// This class represents a registry value in a 
+    /// </summary>
     public class RegValueEntry
     {
+        /// <summary>
+        /// Name of this value. Warning: for default values this is going to be null.
+        /// </summary>
         public readonly string Name;
+
+        /// <summary>
+        /// Value data
+        /// </summary>
         public object Value  { get; private set; }
+
+        /// <summary>
+        /// Type of data encoded in this object
+        /// </summary>
         public RegValueEntryKind Kind { get; private set; }
+
+        /// <summary>
+        /// If this flag is set, you really want to remove the registry value rather than add it
+        /// </summary>
         public bool RemoveFlag;
 
+        /// <summary>
+        /// This constructor creates a named value with unknown content
+        /// </summary>
+        /// <param name="name">Name of the value</param>
         public RegValueEntry(string name)
         {
             Name = name;
@@ -22,6 +67,11 @@ namespace com.tikumo.regis3
             RemoveFlag = false;
         }
 
+        /// <summary>
+        /// This constructor creates a named value from a Windows registry value
+        /// </summary>
+        /// <param name="key">Parent registry key</param>
+        /// <param name="name">Name of the value</param>
         public RegValueEntry(RegistryKey key, string name)
         {
             Kind = MapNativeKindToRegis3Kind(key.GetValueKind(name));
@@ -38,6 +88,11 @@ namespace com.tikumo.regis3
             RemoveFlag = false;
         }
 
+        /// <summary>
+        /// Write this value back to the Windows registry
+        /// </summary>
+        /// <param name="registryKey">Parent registry key. Must be open with write permissions.</param>
+        /// <param name="env">Helper class that can map $$-escaped strings.</param>
         public void WriteToTheRegistry(RegistryKey registryKey, RegEnvReplace env)
         {
             string name = env.Map(Name);
@@ -45,7 +100,7 @@ namespace com.tikumo.regis3
             if (Value is string)
             {
                 string stringValue = Value as string;
-                if( stringValue.Contains("$$") )
+                if( (env != null) && stringValue.Contains("$$") )
                 {
                     stringValue = env.Map(stringValue);
                     if (Kind == RegValueEntryKind.DWord)
@@ -110,12 +165,19 @@ namespace com.tikumo.regis3
             }
         }
 
+        /// <summary>
+        /// The default constructor creates an unnamed value without contenet.
+        /// </summary>
         public RegValueEntry()
         {
             Name = null;
             Kind = RegValueEntryKind.Unknown;
         }
 
+        /// <summary>
+        /// Describe the content of this value as a byte array. This should be used only 
+        /// </summary>
+        /// <returns></returns>
         public byte[] AsByteArray()
         {
             if (Value == null)
@@ -173,24 +235,45 @@ namespace com.tikumo.regis3
             Kind = objectSrc.Kind;
         }
 
+        /// <summary>
+        /// Define a string value
+        /// </summary>
+        /// <param name="value">content</param>
         public void SetStringValue(string value)
         {
             Kind = RegValueEntryKind.SZ;
             Value = value;
         }
         
+        /// <summary>
+        /// Define an escaped integer value. If you're reading .REG files and you use the RegEnvReplace class to replace 
+        /// content with variables at runtime, you can specify something like this:
+        /// 
+        /// "SomeValue"=dword:$$VARIABLE$$
+        /// 
+        /// </summary>
+        /// <param name="value">Name of the escaped int variable</param>
         public void SetEscapedIntValue(string value)
         {
             Kind = RegValueEntryKind.DWord;
             Value = value;
         }
 
+        /// <summary>
+        /// Define an integer value
+        /// </summary>
+        /// <param name="value">integer value</param>
         public void SetIntValue(int value)
         {
             Kind = RegValueEntryKind.DWord;
             Value = value;
         }
 
+        /// <summary>
+        /// Given hex-encoded binary data, set a blob type
+        /// </summary>
+        /// <param name="kind">Type of registry entry</param>
+        /// <param name="bytes">Byte representation of the data</param>
         public void SetBinaryType(RegValueEntryKind kind, byte[] bytes)
         {
             Value = bytes;
@@ -240,6 +323,9 @@ namespace com.tikumo.regis3
             }
         }
 
+        /// <summary>
+        /// Returns true if this object represents the default ("null") value in a registry key
+        /// </summary>
         public bool IsDefaultValue
         {
             get
@@ -281,6 +367,10 @@ namespace com.tikumo.regis3
             output.WriteLine();
         }
 
+        /// <summary>
+        /// Helper function: Export this function in .REG file format to an output stream
+        /// </summary>
+        /// <param name="output">Output stream</param>
         public void WriteRegFileFormat(TextWriter output)
         {
             string name = IsDefaultValue ? "@" : string.Format("\"{0}\"", Name.Replace("\\", "\\\\"));

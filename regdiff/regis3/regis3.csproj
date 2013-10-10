@@ -44,7 +44,6 @@
     <Compile Include="AbstractFileParser.cs" />
     <Compile Include="ini\IniFile.cs" />
     <Compile Include="ini\IniFileEntry.cs" />
-    <Compile Include="ini\IniFileEntryType.cs" />
     <Compile Include="ini\IniFileOptions.cs" />
     <Compile Include="ini\IniFileParser.cs" />
     <Compile Include="ini\IniFileSection.cs" />
