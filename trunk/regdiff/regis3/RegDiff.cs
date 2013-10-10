@@ -1,26 +1,100 @@
-﻿using System;
+﻿// Copyright (c) 2013, Gerson Kurz
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+//
+// Redistributions of source code must retain the above copyright notice, this list
+// of conditions and the following disclaimer. Redistributions in binary form must
+// reproduce the above copyright notice, this list of conditions and the following
+// disclaimer in the documentation and/or other materials provided with the distribution.
+// 
+// Neither the name regdiff nor the names of its contributors may be used to endorse
+// or promote products derived from this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+// IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+// INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+// NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Diagnostics;
-using System.IO;
 
 namespace com.tikumo.regis3
 {
+    /// <summary>
+    /// This class takes two (named) registry keys and produces a set of differences between the two keys.
+    /// In regis3, keys can be imported from different sources (the registry, a .REG file, an .XML file) and are represented
+    /// in memory as RegKeyEntry trees. This class takes two such trees (independently of their origin) and compares them.
+    /// </summary>
     public class RegDiff
     {
+        /// <summary>
+        /// Keys missing in 1 but present in 2
+        /// </summary>
         public readonly List<RegKeyEntry> MissingKeysIn1 = new List<RegKeyEntry>();
+
+        /// <summary>
+        /// Keys missing in 2 but present in 1
+        /// </summary>
         public readonly List<RegKeyEntry> MissingKeysIn2 = new List<RegKeyEntry>();
+
+        /// <summary>
+        /// Values missing in 1 but present in 2
+        /// </summary>
         public readonly List<MissingValue> MissingValuesIn1 = new List<MissingValue>();
+
+        /// <summary>
+        /// Values missing in 2 but present in 1 
+        /// </summary>
         public readonly List<MissingValue> MissingValuesIn2 = new List<MissingValue>();
+
+        /// <summary>
+        /// Data mismatches: a key/value exists in both files, but the respective data doesn't match
+        /// </summary>
         public readonly List<DataMismatch> DataMismatches = new List<DataMismatch>();
+
+        /// <summary>
+        /// Kind mismatches: a key/value exists in both files, but the kind doesn't match (for example, its a string in one file and an integer in the other)
+        /// </summary>
         public readonly List<KindMismatch> KindMismatches = new List<KindMismatch>();
+
+        /// <summary>
+        /// Name of the first file / key / source
+        /// </summary>
         public readonly string Name1;
+
+        /// <summary>
+        /// Name of the second file / key / source
+        /// </summary>
         public readonly string Name2;
+
+        /// <summary>
+        /// First key 
+        /// </summary>
         public readonly RegKeyEntry Key1;
+
+        /// <summary>
+        /// Second key
+        /// </summary>
         public readonly RegKeyEntry Key2;
         
+        /// <summary>
+        /// The constructor creates two named registry keys and compares them
+        /// </summary>
+        /// <param name="key1">First key</param>
+        /// <param name="name1">Name of first key</param>
+        /// <param name="key2">Second key</param>
+        /// <param name="name2">Name of second key</param>
         public RegDiff(RegKeyEntry key1, string name1, RegKeyEntry key2, string name2)
         {
             Key1 = key1;
@@ -329,6 +403,10 @@ namespace com.tikumo.regis3
             }
         }
 
+        /// <summary>
+        /// Create a string description of this instance
+        /// </summary>
+        /// <returns>String description of this instance</returns>
         public override string ToString()
         {
             StringBuilder result = new StringBuilder();
@@ -346,7 +424,7 @@ namespace com.tikumo.regis3
             return text;
         }
 
-        public void CompareRecursive(RegKeyEntry key1, RegKeyEntry key2)
+        private void CompareRecursive(RegKeyEntry key1, RegKeyEntry key2)
         {
             // Acquire keys and sort them.
             List<string> sortedNames;
@@ -370,7 +448,7 @@ namespace com.tikumo.regis3
             
             if (key1.DefaultValue != null)
             {
-                Trace.Assert(key1.DefaultValue.IsDefaultValue);
+                Debug.Assert(key1.DefaultValue.IsDefaultValue);
                 if (key2.DefaultValue == null)
                 {
                     MissingValuesIn2.Add(new MissingValue(key1, key1.DefaultValue));
@@ -378,7 +456,7 @@ namespace com.tikumo.regis3
             }
             else if (key2.DefaultValue != null)
             {
-                Trace.Assert(key2.DefaultValue.IsDefaultValue);
+                Debug.Assert(key2.DefaultValue.IsDefaultValue);
                 MissingValuesIn1.Add(new MissingValue(key2, key2.DefaultValue));
             }
 
