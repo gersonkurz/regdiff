@@ -299,6 +299,20 @@ namespace com.tikumo.regis3
         
         private void DumpByteMismatch(StringBuilder result, byte[] a, byte[] b)
         {
+            if (a == null)
+            {
+                result.AppendLine("a is null");
+                result.AppendLine(string.Format("b is array of {0} bytes", b.Length));
+                return;
+            }
+            else if (b == null)
+            {
+                result.AppendLine(string.Format("a is array of {0} bytes", a.Length));
+                result.AppendLine("b is null");
+                return;
+
+            }
+
             int n = Math.Max(a.Length, b.Length);
 
             for (int i = 0; i < n; ++i)

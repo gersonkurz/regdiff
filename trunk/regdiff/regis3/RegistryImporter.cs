@@ -24,6 +24,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 using Microsoft.Win32;
+using System.Diagnostics;
 
 namespace com.tikumo.regis3
 {
@@ -48,12 +49,13 @@ namespace com.tikumo.regis3
         /// and reads everything under it.
         /// </summary>
         /// <param name="rootPath">Root path</param>
-        public RegistryImporter(string rootPath)
+        /// <param name="registryView">Type of registry you want to see (32-bit, 64-bit, default).</param>
+        public RegistryImporter(string rootPath, RegistryView registryView)
         {
             Result = new RegKeyEntry(null, rootPath);
 
             string rootPathWithoutHive;
-            RegistryKey rootKey = Regis3.OpenRegistryHive(rootPath, out rootPathWithoutHive);
+            RegistryKey rootKey = Regis3.OpenRegistryHive(rootPath, out rootPathWithoutHive, registryView);
             using (RegistryKey key = rootKey.OpenSubKey(rootPathWithoutHive))
             {
                 ImportRecursive(Result, key);
@@ -105,7 +107,15 @@ namespace com.tikumo.regis3
 
             foreach (var name in key.GetValueNames())
             {
-                parent.Values[name.ToLower()] = new RegValueEntry(key, name);
+                if (string.IsNullOrEmpty(name))
+                {
+                    Trace.Assert(parent.DefaultValue == null);
+                    parent.DefaultValue = new RegValueEntry(key, null);
+                }
+                else
+                {
+                    parent.Values[name.ToLower()] = new RegValueEntry(key, name);
+                }
             }
         }
     }

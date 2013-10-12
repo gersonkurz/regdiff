@@ -244,6 +244,28 @@ namespace com.tikumo.regis3
             Kind = RegValueEntryKind.SZ;
             Value = value;
         }
+
+        /// <summary>
+        /// Define a expanded string value
+        /// </summary>
+        /// <param name="value">content</param>
+        public void SetExpandedStringValue(string value)
+        {
+            Kind = RegValueEntryKind.ExpandSZ;
+            Value = value;
+        }
+
+
+        /// <summary>
+        /// Define a multi-string value
+        /// </summary>
+        /// <param name="values">content</param>
+        public void SetMultiStringValue(List<string> values)
+        {
+            Kind = RegValueEntryKind.MultiSZ;
+            string[] stringArray = values.ToArray();
+            Value = stringArray;
+        }
         
         /// <summary>
         /// Define an escaped integer value. If you're reading .REG files and you use the RegEnvReplace class to replace 
@@ -260,6 +282,20 @@ namespace com.tikumo.regis3
         }
 
         /// <summary>
+        /// Define an escaped integer value. If you're reading .REG files and you use the RegEnvReplace class to replace 
+        /// content with variables at runtime, you can specify something like this:
+        /// 
+        /// "SomeValue"=qword:$$VARIABLE$$
+        /// 
+        /// </summary>
+        /// <param name="value">Name of the escaped int variable</param>
+        public void SetEscapedLongValue(string value)
+        {
+            Kind = RegValueEntryKind.QWord;
+            Value = value;
+        }
+
+        /// <summary>
         /// Define an integer value
         /// </summary>
         /// <param name="value">integer value</param>
@@ -267,6 +303,25 @@ namespace com.tikumo.regis3
         {
             Kind = RegValueEntryKind.DWord;
             Value = value;
+        }
+
+        /// <summary>
+        /// Define a long value
+        /// </summary>
+        /// <param name="value">integer value</param>
+        public void SetLongValue(long value)
+        {
+            Kind = RegValueEntryKind.QWord;
+            Value = value;
+        }
+
+        /// <summary>
+        /// Associate 'None'-type with empty value
+        /// </summary>
+        public void SetNoneValue()
+        {
+            Value = null;
+            Kind = RegValueEntryKind.None;
         }
 
         /// <summary>
@@ -309,6 +364,25 @@ namespace com.tikumo.regis3
                     throw;
                 }
             }
+            else if (Kind == RegValueEntryKind.DWord)
+            {
+                try
+                {
+                    if (bytes.Length == 4)
+                    {
+                        Value = (int)BitConverter.ToInt32(bytes, 0);
+                    }
+                    else
+                    {
+                        Value = (int) BitConverter.ToInt64(bytes, 0);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
+            }
             else if (Kind == RegValueEntryKind.QWord)
             {
                 try
@@ -342,7 +416,8 @@ namespace com.tikumo.regis3
             }
             else
             {
-                output.Write("{0}=hex({1}):", name, (int)Kind);
+                int hexkind = (int)Kind;
+                output.Write("{0}=hex({1}):", name, hexkind.ToString("x"));
             }
             int bytesWritten = 0;
             string separator = ",";
@@ -360,11 +435,39 @@ namespace com.tikumo.regis3
                 else
                 {
                     bytesWritten = 0;
-                    separator = ",\\\r\n";
+                    separator = ",\\\r\n  ";
                 }
                 ++i;
             }
             output.WriteLine();
+        }
+
+        /// <summary>
+        /// Escape a string for .REG files (i.e. replace " and \ tokens)
+        /// </summary>
+        /// <param name="input">Input string</param>
+        /// <returns>Escaped string</returns>
+        public static string EscapeString(string input)
+        {
+            StringBuilder output = new StringBuilder();
+            foreach (char c in input)
+            {
+                if (c == '"')
+                {
+                    output.Append('\\');
+                    output.Append('"');
+                }
+                else if (c == '\\')
+                {
+                    output.Append('\\');
+                    output.Append('\\');
+                }
+                else
+                {
+                    output.Append(c);
+                }
+            }
+            return output.ToString();
         }
 
         /// <summary>
@@ -373,7 +476,7 @@ namespace com.tikumo.regis3
         /// <param name="output">Output stream</param>
         public void WriteRegFileFormat(TextWriter output)
         {
-            string name = IsDefaultValue ? "@" : string.Format("\"{0}\"", Name.Replace("\\", "\\\\"));
+            string name = IsDefaultValue ? "@" : string.Format("\"{0}\"", EscapeString(Name));
 
             if (RemoveFlag)
             {
@@ -382,11 +485,18 @@ namespace com.tikumo.regis3
             else if (Kind == RegValueEntryKind.SZ)
             {
                 string value = (string)Value;
-                output.WriteLine("{0}=\"{1}\"", name, value.Replace("\\", "\\\\"));
+                output.WriteLine("{0}=\"{1}\"", name, EscapeString(value));
             }
             else if (Kind == RegValueEntryKind.DWord)
             {
-                output.WriteLine("{0}=dword:{1}", name, ((int)Value).ToString("X8"));
+                if (Value is int)
+                {
+                    output.WriteLine("{0}=dword:{1}", name, ((int)Value).ToString("X8"));
+                }
+                else
+                {
+                    output.WriteLine("{0}=dword:{1}", name, ((long)Value).ToString("X8"));
+                }
             }
             else if( (Value != null ) && (Value is byte[]) )
             {
@@ -394,7 +504,7 @@ namespace com.tikumo.regis3
             }
             else if ((Kind == RegValueEntryKind.ExpandSZ) && (Value is string) )
             {
-                output.WriteLine("{0}=\"{1}\"", name, Value);
+                WriteHexEncodedValue(output, name, AsByteArray());
             }
             else if ((Kind == RegValueEntryKind.MultiSZ) && (Value is string[]))
             {

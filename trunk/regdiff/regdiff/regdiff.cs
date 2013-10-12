@@ -43,9 +43,7 @@ namespace com.tikumo.regdiff
     /// Copyright (C) 2013 by Gerson Kurz
     /// BSD-Licensed
     /// </summary>
-    /// <todo>support XML import </todo>
     /// <todo>support remove-keys/values when reading .REG File format</todo>
-    /// <todo>export doesn't write blanks in front of hex dumps</todo>
     /// <todo>throw syntax error if $$ option cannot be found</todo>
     /// <todo>LATER: hex dump format to mimic regedit format</todo>
     /// <todo>LATER: support multiple locale strings</todo>
@@ -64,15 +62,35 @@ namespace com.tikumo.regdiff
         private string MergeFile;
         private string ParamsFilename;
         private readonly List<RegKeyEntry> Files = new List<RegKeyEntry>();
+        private RegistryView CurrentRegistryView;
         
         private int Run(string[] args)
         {
             Options = RegFileImportOptions.IgnoreWhitespaces;
             Console.OutputEncoding = Encoding.GetEncoding(Encoding.Default.CodePage);
+
+            string processType;
+            if (Wow.Is64BitProcess)
+            {
+                processType = "64-bit";
+                CurrentRegistryView = RegistryView.Registry64;
+            }
+            else if (Wow.Is64BitOperatingSystem)
+            {
+                processType = "32-bit process on 64-bit OS";
+                CurrentRegistryView = RegistryView.Registry32;
+            }
+            else
+            {
+                processType = "32-bit";
+                CurrentRegistryView = RegistryView.Default;
+            }
+
+
             Args = new InputArgs(
                 "REGDIFF",
-                string.Format("Version {0}\r\nFreeware written by Gerson Kurz (http://tikumo.com)",
-                AppVersion.Get()));
+                string.Format("Version {0}\r\nFreeware written by Gerson Kurz (http://tikumo.com) [{1}]",
+                AppVersion.Get(), processType));
             
             Args.Add(InputArgType.RemainingParameters, "FILE {FILE}", null, Presence.Required, "one or more .REG files");
             Args.Add(InputArgType.Parameter, "merge", null, Presence.Optional, "create merged output file");
@@ -85,6 +103,19 @@ namespace com.tikumo.regdiff
             Args.Add(InputArgType.Flag, "write", false, Presence.Optional, "write keys/values to registry");
             Args.Add(InputArgType.Flag, "allaccess", false, Presence.Optional, "grant all access to everyone (when using the /write option)");
             Args.Add(InputArgType.Parameter, "params", null, Presence.Optional, "read value params from file (when using the /write option)");
+
+            if (Wow.Is64BitProcess)
+            {
+                Args.Add(InputArgType.Flag, "32", false, Presence.Optional, "use 32-bit registry (default for this process: 64-bit)");
+            }
+            else if (Wow.Is64BitOperatingSystem)
+            {
+                Args.Add(InputArgType.Flag, "64", false, Presence.Optional, "use 64-bit registry (default for this process: 32-bit)");
+            }
+            else
+            {
+                // There is only the 32-bit registry: no need to add this
+            }
 
             if (!Args.Process(args))
                 return 10;
@@ -102,6 +133,21 @@ namespace com.tikumo.regdiff
             if (WriteToTheRegistry)
             {
                 Options = RegFileImportOptions.AllowSemicolonComments | RegFileImportOptions.AllowHashtagComments | RegFileImportOptions.AllowVariableNamesForNonStringVariables | RegFileImportOptions.IgnoreWhitespaces;
+            }
+
+            if (Wow.Is64BitProcess)
+            {
+                if (Args.GetFlag("32"))
+                {
+                    CurrentRegistryView = RegistryView.Registry32;
+                }
+            }
+            else if (Wow.Is64BitOperatingSystem)
+            {
+                if (Args.GetFlag("64"))
+                {
+                    CurrentRegistryView = RegistryView.Registry64;
+                }
             }
 
             if (CompareAgainstRegistry && (Filenames.Count > 1))
@@ -134,18 +180,32 @@ namespace com.tikumo.regdiff
             {
                 Console.WriteLine("Reading {0}...", filename);
 
-                string rootPathWithoutHive;
-                RegistryKey key = Regis3.OpenRegistryHive(filename, out rootPathWithoutHive);
-                IRegistryImporter importer;
+                IRegistryImporter importer = null;
                 try
                 {
-                    if (key != null)
+                    if (File.Exists(filename))
                     {
-                        importer = new RegistryImporter(key, rootPathWithoutHive);
+                        if (filename.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
+                        {
+                            importer = new XmlRegFileImporter(File.ReadAllText(filename));
+                        }
+                        else if (filename.EndsWith(".reg", StringComparison.OrdinalIgnoreCase))
+                        {
+                            importer = RegFile.CreateImporterFromFile(filename, Options);
+                        }
                     }
-                    else
+                    if (importer == null)
                     {
-                        importer = RegFile.CreateImporterFromFile(filename, Options);
+                        string rootPathWithoutHive;
+                        RegistryKey key = Regis3.OpenRegistryHive(filename, out rootPathWithoutHive, CurrentRegistryView);
+                        if (key != null)
+                        {
+                            importer = new RegistryImporter(key, rootPathWithoutHive);
+                        }
+                        else
+                        {
+                            importer = RegFile.CreateImporterFromFile(filename, Options);
+                        }
                     }
                     Files.Add(importer.Import());
                 }
@@ -157,7 +217,7 @@ namespace com.tikumo.regdiff
             }
             if (CompareAgainstRegistry)
             {
-                Files.Add(new RegistryImportRelativeToExistingRegKeyEntry(Files[0]).Import());
+                Files.Add(new RegistryImportRelativeToExistingRegKeyEntry(Files[0], CurrentRegistryView).Import());
                 Filenames.Add("REGISTRY");
             }
             Console.WriteLine();
@@ -193,11 +253,15 @@ namespace com.tikumo.regdiff
                     }
                     if (!string.IsNullOrEmpty(DiffFile))
                     {
-                        CreateRegFileExporter().Export(rc.CreateDiffKeyEntry(), DiffFile);
+                        Console.WriteLine("Writing {0}...", DiffFile);
+                        CreateRegFileExporter(DiffFile).Export(rc.CreateDiffKeyEntry(), DiffFile);
+                        Console.WriteLine();
                     }
                     if (!string.IsNullOrEmpty(MergeFile))
                     {
-                        CreateRegFileExporter().Export(rc.CreateMergeKeyEntry(), MergeFile);
+                        Console.WriteLine("Writing {0}...", MergeFile);
+                        CreateRegFileExporter(MergeFile).Export(rc.CreateMergeKeyEntry(), MergeFile);
+                        Console.WriteLine();
                     }
                 }
             }
@@ -209,7 +273,9 @@ namespace com.tikumo.regdiff
             RegKeyEntry regKeyEntry = Files[0];
             if (!string.IsNullOrEmpty(MergeFile))
             {
-                CreateRegFileExporter().Export(regKeyEntry, MergeFile);
+                Console.WriteLine("Writing {0}...", MergeFile);
+                CreateRegFileExporter(MergeFile).Export(regKeyEntry, MergeFile);
+                Console.WriteLine();
             }
             if (WriteToTheRegistry)
             {
@@ -248,7 +314,7 @@ namespace com.tikumo.regdiff
                 RegistryWriteOptions registryWriteOptions = RegistryWriteOptions.Recursive;
                 if (AllAccess)
                     registryWriteOptions |= RegistryWriteOptions.AllAccessForEveryone;
-                regKeyEntry.WriteToTheRegistry(registryWriteOptions, env);
+                regKeyEntry.WriteToTheRegistry(registryWriteOptions, env, CurrentRegistryView);
             }
             else if (AllAccess)
             {
@@ -264,8 +330,12 @@ namespace com.tikumo.regdiff
             return 0;
         }
 
-        private IRegistryExporter CreateRegFileExporter()
+        private IRegistryExporter CreateRegFileExporter(string filename)
         {
+            // allow the user to specify a filename ending in .xml rather than having to explicitly saying /XML
+            if( filename.EndsWith(".xml", StringComparison.OrdinalIgnoreCase ))
+                return new XmlRegFileExporter();
+
             if (FileFormatXML)
                 return new XmlRegFileExporter();
 
