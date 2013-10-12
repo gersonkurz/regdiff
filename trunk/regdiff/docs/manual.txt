@@ -258,5 +258,11 @@ OPTIONS:
 == History ==
 
  * Version 4.0: new release based on C#
- * Version 4.1: added XML import, fixed a couple of bugs, added options to distinguish 32-bit/64-bit registry
+ * Version 4.1: 
+   # New Feature: added XML import
+   # Fixed Bug: ExpandSZ strings are exported as hex-encoded in .REG files. This is less readable, but retains the data type
+   # New Feature: added options to distinguish 32-bit/64-bit registry
+   # Fixed Bug: Had a problem detecting default values when importing from the registry. This is fixed now.
+   # Fixed Bug: Did not escape strings / value names properly
+
  
