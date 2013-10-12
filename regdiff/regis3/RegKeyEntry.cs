@@ -392,19 +392,20 @@ namespace com.tikumo.regis3
         /// </summary>
         /// <param name="registryWriteOptions">Options for writing to the registry</param>
         /// <param name="env">Optional handler for environment variable replacement</param>
-        public void WriteToTheRegistry(RegistryWriteOptions registryWriteOptions, RegEnvReplace env)
+        /// <param name="registryView">Type of registry you want to see (32-bit, 64-bit, default).</param>
+        public void WriteToTheRegistry(RegistryWriteOptions registryWriteOptions, RegEnvReplace env, RegistryView registryView)
         {
             if ((registryWriteOptions & RegistryWriteOptions.Recursive) != 0)
             {
                 foreach (RegKeyEntry subkey in Keys.Values)
                 {
-                    subkey.WriteToTheRegistry(registryWriteOptions, env);
+                    subkey.WriteToTheRegistry(registryWriteOptions, env, registryView);
                 }
             }
 
             string rootPath = env.Map(Path);
             string rootPathWithoutHive;
-            using (RegistryKey registryKey = Regis3.OpenRegistryHive(rootPath, out rootPathWithoutHive))
+            using (RegistryKey registryKey = Regis3.OpenRegistryHive(rootPath, out rootPathWithoutHive, registryView))
             {
                 if ((registryWriteOptions & RegistryWriteOptions.AllAccessForEveryone) != 0)
                 {

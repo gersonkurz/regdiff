@@ -42,6 +42,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AbstractFileParser.cs" />
+    <Compile Include="Wow.cs" />
+    <Compile Include="XmlRegFileImporter.cs" />
     <Compile Include="ini\IniFile.cs" />
     <Compile Include="ini\IniFileEntry.cs" />
     <Compile Include="ini\IniFileOptions.cs" />

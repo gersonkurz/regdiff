@@ -48,13 +48,14 @@ namespace com.tikumo.regis3
         /// This constructor creates a registry importer for an existing registry key
         /// </summary>
         /// <param name="existingRegistry">Existing registry key</param>
-        public RegistryImportRelativeToExistingRegKeyEntry(RegKeyEntry existingRegistry)
+        /// <param name="registryView">Type of registry you want to see (32-bit, 64-bit, default).</param>
+        public RegistryImportRelativeToExistingRegKeyEntry(RegKeyEntry existingRegistry, RegistryView registryView)
         {
             Result = new RegKeyEntry(null, existingRegistry.Path);
 
             string rootPath = existingRegistry.Path;
             string rootPathWithoutHive;
-            RegistryKey rootKey = Regis3.OpenRegistryHive(rootPath, out rootPathWithoutHive);
+            RegistryKey rootKey = Regis3.OpenRegistryHive(rootPath, out rootPathWithoutHive, registryView);
             using (RegistryKey key = rootKey.OpenSubKey(rootPathWithoutHive))
             {
                 ImportRecursive(Result, key, existingRegistry);

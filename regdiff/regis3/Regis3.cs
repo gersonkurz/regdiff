@@ -44,14 +44,13 @@ namespace com.tikumo.regis3
         /// </summary>
         /// <param name="rootPath">absolute registry path</param>
         /// <param name="rootPathWithoutHive">Returns the relative path</param>
-        /// <param name="use32BitRegistry">True if you want to access the 32-bit regisrty, or false if you want to access the 64-bit registry.</param>
+        /// <param name="registryView">Type of registry you want to see (32-bit, 64-bit, default).</param>
         /// <param name="remoteMachineName">Name of a remote machine. User must ensure that caller has sufficient privileges to access the key</param>
         /// <returns>"registry hive" root</returns>
-        public static RegistryKey OpenRegistryHive(string rootPath, out string rootPathWithoutHive, bool use32BitRegistry = true, string remoteMachineName = null)
+        public static RegistryKey OpenRegistryHive(string rootPath, out string rootPathWithoutHive, RegistryView registryView, string remoteMachineName = null)
         {
             rootPathWithoutHive = "";
             bool found = false;
-            RegistryView registryView = use32BitRegistry ? RegistryView.Registry32 : RegistryView.Registry64;
             foreach (string key in KnownHives.Keys)
             {
                 if (rootPath.StartsWith(key+"\\", StringComparison.OrdinalIgnoreCase))
@@ -84,11 +83,11 @@ namespace com.tikumo.regis3
         /// Given an (absolute) registry key, delete everything under it including subkeys.
         /// </summary>
         /// <param name="sourcePath">Absolute registry path (i.e. one starting with HKEY_LOCAL_MACHINE or something similar)</param>
-        /// <param name="use32BitRegistry">True if you want to access the 32-bit regisrty, or false if you want to access the 64-bit registry.</param>
-        public static void DeleteKeyRecursive(string sourcePath, bool use32BitRegistry = true)
+        /// <param name="registryView">Type of registry you want to see (32-bit, 64-bit, default).</param>
+        public static void DeleteKeyRecursive(string sourcePath, RegistryView registryView)
         {
             string subKeyName;
-            using(RegistryKey root = OpenRegistryHive(sourcePath, out subKeyName, use32BitRegistry))
+            using(RegistryKey root = OpenRegistryHive(sourcePath, out subKeyName, registryView))
             {
                 try
                 {

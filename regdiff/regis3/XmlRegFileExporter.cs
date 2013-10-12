@@ -69,6 +69,7 @@ namespace com.tikumo.regis3
 
             XmlWriter Writer = XmlWriter.Create(file, settings);
             Writer.WriteStartElement("registry");
+            Writer.WriteAttributeString("version", "2");
            
             WriteXmlFileFormat(Writer, key);
             
@@ -80,11 +81,8 @@ namespace com.tikumo.regis3
         {
             foreach (char current in s)
             {
-                if ((current == 0x9) ||
-                    (current == 0xA) ||
-                    (current == 0xD) ||
-                    ((current >= 0x20) && (current <= 0xD7FF)) ||
-                    ((current >= 0xE000) && (current <= 0xFFFD)))
+                if ( ((current >= 0x20) && (current <= 0xD7FF)) ||
+                     ((current >= 0xE000) && (current <= 0xFFFD)) )
                 {
                     // is valid
                 }
@@ -92,7 +90,6 @@ namespace com.tikumo.regis3
                 {
                     return false;
                 }
-                    
             }
             return true;
         }
@@ -102,33 +99,38 @@ namespace com.tikumo.regis3
             return Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(str));
         }
 
-        private static void EncodeStringValue(XmlWriter Writer, RegValueEntry value, string xmlName)
+        private static void EncodeStringValue(XmlWriter Writer, RegValueEntry value)
         {
-            if (value.Value is string)
+            string content = value.Value.ToString();
+
+            if ((content.Trim() != "") && IsValidXmlString(content))
             {
-                string rep = value.Value.ToString();
-                if (IsValidXmlString(rep))
+                Writer.WriteValue(content);
+            }
+            else
+            {
+                Writer.WriteAttributeString("encoding", "base-64");
+                Writer.WriteValue(EncodeBase64(content));
+            }
+        }
+
+        private static void EncodeMultiStringValue(XmlWriter Writer, RegValueEntry value)
+        {
+            string[] content = (string[]) value.Value;
+
+            foreach (string line in content)
+            {
+                Writer.WriteStartElement("line");
+                if ((line.Trim() != "") && IsValidXmlString(line))
                 {
-                    Writer.WriteElementString(xmlName, rep);
+                    Writer.WriteValue(line);
                 }
                 else
                 {
-                    Writer.WriteElementString("base64-" + xmlName, EncodeBase64(rep));
+                    Writer.WriteAttributeString("encoding", "base-64");
+                    Writer.WriteValue(EncodeBase64(line));
                 }
-            }
-            else if (value.Value is string[])
-            {
-                foreach(string rep in (string[])value.Value)
-                {
-                    if (IsValidXmlString(rep))
-                    {
-                        Writer.WriteElementString(xmlName, rep);
-                    }
-                    else
-                    {
-                        Writer.WriteElementString("base64-" + xmlName, EncodeBase64(rep));
-                    }
-                }
+                Writer.WriteEndElement();
             }
         }
 
@@ -180,17 +182,12 @@ namespace com.tikumo.regis3
 
         private static void WriteHexEncodedValue(XmlWriter writer, RegValueEntryKind kind, IEnumerable<byte> bytes)
         {
-            writer.WriteStartElement("hex");
-            writer.WriteAttributeString("kind", kind.ToString());
-            
             StringBuilder buffer = new StringBuilder();
             foreach (byte b in bytes)
             {
                 buffer.Append(b.ToString("X2"));
             }
-            writer.WriteElementString("data", buffer.ToString());
-            writer.WriteEndElement();
-            
+            writer.WriteValue(buffer.ToString());
         }
 
         private static void WriteXmlFileFormat(XmlWriter writer, RegValueEntry value)
@@ -209,32 +206,26 @@ namespace com.tikumo.regis3
             }
             else
             {
-                if (value.IsDefaultValue)
+                writer.WriteStartElement(value.Kind.ToString());
+                if( !value.IsDefaultValue )
                 {
-                    writer.WriteStartElement("default-value");
-                }
-                else
-                {
-                    writer.WriteStartElement("value");
                     writer.WriteAttributeString("name", value.Name);
                 }
 
                 switch (value.Kind)
                 {
                     case RegValueEntryKind.DWord:
-                        writer.WriteElementString("dword", value.Value.ToString());
-                        break;
-                    case RegValueEntryKind.SZ:
-                        EncodeStringValue(writer, value, "string");
-                        break;
-                    case RegValueEntryKind.ExpandSZ:
-                        EncodeStringValue(writer, value, "expand-string");
-                        break;
-                    case RegValueEntryKind.MultiSZ:
-                        EncodeStringValue(writer, value, "multi-string");
-                        break;
                     case RegValueEntryKind.QWord:
-                        writer.WriteElementString("qword", value.Value.ToString());
+                        writer.WriteValue(value.Value.ToString());
+                        break;
+
+                    case RegValueEntryKind.SZ:
+                    case RegValueEntryKind.ExpandSZ:
+                        EncodeStringValue(writer, value);
+                        break;
+
+                    case RegValueEntryKind.MultiSZ:
+                        EncodeMultiStringValue(writer, value);
                         break;
 
                     default:
@@ -242,7 +233,7 @@ namespace com.tikumo.regis3
                         {
                             WriteHexEncodedValue(writer, value.Kind, value.Value as byte[]);
                         }
-                        else
+                        else if( ( value.Kind != RegValueEntryKind.Unknown ) && ( value.Kind != RegValueEntryKind.None ) )
                         {
                             throw new Exception(string.Format("ERROR, XmlRegFileExporter() isn't prepared to handle data of type {0}", value.Kind));
                         }
