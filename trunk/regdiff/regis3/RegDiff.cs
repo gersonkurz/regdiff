@@ -87,7 +87,9 @@ namespace com.tikumo.regis3
         /// Second key
         /// </summary>
         public readonly RegKeyEntry Key2;
-        
+
+        private readonly Dictionary<string, string> Aliases;
+         
         /// <summary>
         /// The constructor creates two named registry keys and compares them
         /// </summary>
@@ -95,12 +97,14 @@ namespace com.tikumo.regis3
         /// <param name="name1">Name of first key</param>
         /// <param name="key2">Second key</param>
         /// <param name="name2">Name of second key</param>
-        public RegDiff(RegKeyEntry key1, string name1, RegKeyEntry key2, string name2)
+        /// <param name="aliases">Dictionary of key aliases</param>
+        public RegDiff(RegKeyEntry key1, string name1, RegKeyEntry key2, string name2, Dictionary<string, string> aliases)
         {
             Key1 = key1;
             Key2 = key2;
             Name1 = name1;
             Name2 = name2;
+            Aliases = aliases;
             CompareRecursive(key1, key2);
         }
 
@@ -455,7 +459,23 @@ namespace com.tikumo.regis3
                 }
                 else
                 {
-                    MissingKeysIn2.Add(subkey1);
+                    if (Aliases.ContainsKey(keyName.ToLower()))
+                    {
+                        string aliasedName = Aliases[keyName.ToLower()];
+                        if (key2.Keys.ContainsKey(aliasedName))
+                        {
+                            RegKeyEntry subkey2 = key2.Keys[aliasedName];
+                            CompareRecursive(subkey1, subkey2);
+                        }
+                        else
+                        {
+                            MissingKeysIn2.Add(subkey1);
+                        }
+                    }
+                    else
+                    {
+                        MissingKeysIn2.Add(subkey1);
+                    }
                 }
             }
 
@@ -507,7 +527,18 @@ namespace com.tikumo.regis3
             {
                 if (!key1.Keys.ContainsKey(keyName))
                 {
-                    MissingKeysIn1.Add(key2.Keys[keyName]);
+                    if (Aliases.ContainsKey(keyName.ToLower()))
+                    {
+                        string aliasedName = Aliases[keyName.ToLower()];
+                        if (!key1.Keys.ContainsKey(aliasedName))
+                        {
+                            MissingKeysIn1.Add(key2.Keys[keyName]);
+                        }
+                    }
+                    else
+                    {
+                        MissingKeysIn1.Add(key2.Keys[keyName]);
+                    }
                 }
             }
         }
