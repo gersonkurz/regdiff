@@ -29,9 +29,19 @@ using System.IO;
 
 namespace com.tikumo.regdiff
 {
+    /// <summary>
+    /// This enum specifies if a parameter is optional (=can be omitted) or required (=must be present)
+    /// </summary>
     internal enum Presence
     {
+        /// <summary>
+        /// Parameter is optional (=can be omitted)
+        /// </summary>
         Optional = 0,
+
+        /// <summary>
+        /// Parameter is required (=must be present)
+        /// </summary>
         Required
     }
 
@@ -43,7 +53,8 @@ namespace com.tikumo.regdiff
         RemainingParameters,
         StringList,
         Enum,
-        SizeInBytes
+        SizeInBytes,
+        MultipleParameters,
     }
 
     internal class InputArgs
@@ -76,6 +87,7 @@ namespace com.tikumo.regdiff
         private ProcessArg CurrentArgMethod;
         private InputArg ExpectedArg;
         private InputArg RemainingArgs;
+        private InputArg CurrentOption;
 
         public InputArgs(string appName, string caption)
         {
@@ -164,6 +176,14 @@ namespace com.tikumo.regdiff
         {
             ExpectedArg.Value = arg;
             ExpectedArg.HasBeenSeen = true;
+            CurrentArgMethod = DefaultProcessFunc;
+            return true;
+        }
+
+        private bool ExpectMultipleParameters(string arg)
+        {
+            List<string> result = FindOrCreateStringList(CurrentOption.Name);
+            result.Add(arg);
             CurrentArgMethod = DefaultProcessFunc;
             return true;
         }
@@ -264,6 +284,7 @@ namespace com.tikumo.regdiff
 
         internal virtual bool OnProcessOption(InputArg option, string arg)
         {
+            CurrentOption = option;
             switch (option.Type)
             {
                 case InputArgType.ExistingDirectory:
@@ -284,6 +305,11 @@ namespace com.tikumo.regdiff
                 case InputArgType.StringList:
                     ExpectedArg = option;
                     CurrentArgMethod = ExpectStringList;
+                    return true;
+
+                case InputArgType.MultipleParameters:
+                    ExpectedArg = option;
+                    CurrentArgMethod = ExpectMultipleParameters;
                     return true;
 
                 case InputArgType.Flag:
