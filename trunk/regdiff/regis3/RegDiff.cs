@@ -88,6 +88,9 @@ namespace com.tikumo.regis3
         /// </summary>
         public readonly RegKeyEntry Key2;
 
+        /// <summary>
+        /// Internal list of aliases
+        /// </summary>
         private readonly Dictionary<string, string> Aliases;
          
         /// <summary>
@@ -459,6 +462,9 @@ namespace com.tikumo.regis3
                 }
                 else
                 {
+                    // two forms are supported: either a single key (as in FOO=BAR), or a complete path (as in HKLM\BLA\BLUB=HKCU\SMA\BU)
+                    // we have a mismatch. It may happen that the key needs to be renamed, and then compared again
+
                     if (Aliases.ContainsKey(keyName.ToLower()))
                     {
                         string aliasedName = Aliases[keyName.ToLower()];

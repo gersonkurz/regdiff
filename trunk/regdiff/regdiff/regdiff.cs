@@ -45,9 +45,9 @@ namespace com.tikumo.regdiff
     /// </summary>
     /// <todo>support remove-keys/values when reading .REG File format</todo>
     /// <todo>throw syntax error if $$ option cannot be found</todo>
+    /// <todo>support path aliasing</todo>
     /// <todo>LATER: hex dump format to mimic regedit format</todo>
     /// <todo>LATER: support multiple locale strings</todo>
-    /// <todo>Be able to compare to differently named registry keys</todo>
     class regdiff
     {
         private RegFileImportOptions Options;
@@ -105,7 +105,7 @@ namespace com.tikumo.regdiff
             Args.Add(InputArgType.Flag, "write", false, Presence.Optional, "write keys/values to registry");
             Args.Add(InputArgType.Flag, "allaccess", false, Presence.Optional, "grant all access to everyone (when using the /write option)");
             Args.Add(InputArgType.Parameter, "params", null, Presence.Optional, "read value params from file (when using the /write option)");
-            Args.Add(InputArgType.Parameter, "alias", null, Presence.Optional, "alias FOO=BAR");
+            Args.Add(InputArgType.MultipleParameters, "alias", null, Presence.Optional, "alias FOO=BAR");
 
             if (Wow.Is64BitProcess)
             {
@@ -123,20 +123,22 @@ namespace com.tikumo.regdiff
             if (!Args.Process(args))
                 return 10;
 
-
-            string alias = Args.GetString("alias");
-            if (alias != null)
+            List<string> aliases = Args.GetStringList("alias");
+            if (aliases != null)
             {
-                string[] tokens = alias.Split('=');
-                if (tokens.Length == 2)
+                foreach(string alias in aliases)
                 {
-                    Aliases[tokens[0].ToLower()] = tokens[1].ToLower();
-                    Aliases[tokens[1].ToLower()] = tokens[0].ToLower();
-                }
-                else
-                {
-                    Console.WriteLine("ERROR, the /alias option must be of the form FOO=BAR");
-                    return 10;
+                    string[] tokens = alias.Split('=');
+                    if (tokens.Length == 2)
+                    {
+                        Aliases[tokens[0].ToLower()] = tokens[1];
+                        Aliases[tokens[1].ToLower()] = tokens[0];
+                    }
+                    else
+                    {
+                        Console.WriteLine("ERROR, the /alias option must be of the form FOO=BAR");
+                        return 10;
+                    }
                 }
             }
 
