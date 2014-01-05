@@ -88,6 +88,9 @@ namespace com.tikumo.regis3
 
         private void ImportRecursive(RegKeyEntry parent, RegistryKey key)
         {
+            if (key == null)
+                return;
+
             foreach (var name in key.GetSubKeyNames())
             {
                 RegKeyEntry entry = new RegKeyEntry(parent, name);
