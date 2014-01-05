@@ -56,6 +56,7 @@ namespace com.tikumo.regdiff
         private bool FileFormat4;
         private bool FileFormatXML;
         private bool Quiet;
+        private bool NoEmptyKeys;
         private bool CompareAgainstRegistry;
         private string DiffFile;
         private bool WriteToTheRegistry;
@@ -91,7 +92,7 @@ namespace com.tikumo.regdiff
 
             Args = new InputArgs(
                 "REGDIFF",
-                string.Format("Version {0}\r\nFreeware written by Gerson Kurz (http://tikumo.com) [{1}]",
+                string.Format("Version {0}\r\nFreeware written by Gerson Kurz (http://p-nand-q.com) [{1}]",
                 AppVersion.Get(), processType));
             
             Args.Add(InputArgType.RemainingParameters, "FILE {FILE}", null, Presence.Required, "one or more .REG files");
@@ -106,6 +107,7 @@ namespace com.tikumo.regdiff
             Args.Add(InputArgType.Flag, "allaccess", false, Presence.Optional, "grant all access to everyone (when using the /write option)");
             Args.Add(InputArgType.Parameter, "params", null, Presence.Optional, "read value params from file (when using the /write option)");
             Args.Add(InputArgType.MultipleParameters, "alias", null, Presence.Optional, "alias FOO=BAR");
+            Args.Add(InputArgType.Flag, "no-empty-keys", false, Presence.Optional, "don't create empty keys");
 
             if (Wow.Is64BitProcess)
             {
@@ -145,6 +147,7 @@ namespace com.tikumo.regdiff
             Filenames = Args.GetStringList("FILE {FILE}");
             FileFormat4 = Args.GetFlag("4");
             Quiet = Args.GetFlag("quiet");
+            NoEmptyKeys = Args.GetFlag("no-empty-keys");
             FileFormatXML = Args.GetFlag("xml");
             DiffFile = Args.GetString("diff");
             MergeFile = Args.GetString("merge");
@@ -273,16 +276,21 @@ namespace com.tikumo.regdiff
                     {
                         Console.WriteLine(rc.ToString());
                     }
+
+                    RegFileExportOptions options = RegFileExportOptions.None;
+                    if (NoEmptyKeys)
+                        options |= RegFileExportOptions.NoEmptyKeys;
+
                     if (!string.IsNullOrEmpty(DiffFile))
                     {
                         Console.WriteLine("Writing {0}...", DiffFile);
-                        CreateRegFileExporter(DiffFile).Export(rc.CreateDiffKeyEntry(), DiffFile);
+                        CreateRegFileExporter(DiffFile).Export(rc.CreateDiffKeyEntry(), DiffFile, options);
                         Console.WriteLine();
                     }
                     if (!string.IsNullOrEmpty(MergeFile))
                     {
                         Console.WriteLine("Writing {0}...", MergeFile);
-                        CreateRegFileExporter(MergeFile).Export(rc.CreateMergeKeyEntry(), MergeFile);
+                        CreateRegFileExporter(MergeFile).Export(rc.CreateMergeKeyEntry(), MergeFile, options);
                         Console.WriteLine();
                     }
                 }
@@ -296,7 +304,12 @@ namespace com.tikumo.regdiff
             if (!string.IsNullOrEmpty(MergeFile))
             {
                 Console.WriteLine("Writing {0}...", MergeFile);
-                CreateRegFileExporter(MergeFile).Export(regKeyEntry, MergeFile);
+
+                RegFileExportOptions options = RegFileExportOptions.None;
+                if (NoEmptyKeys)
+                    options |= RegFileExportOptions.NoEmptyKeys;
+
+                CreateRegFileExporter(MergeFile).Export(regKeyEntry, MergeFile, options);
                 Console.WriteLine();
             }
             if (WriteToTheRegistry)

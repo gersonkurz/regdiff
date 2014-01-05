@@ -309,11 +309,19 @@ namespace com.tikumo.regis3
         /// Write the content of this key to an output stream in .REG file format
         /// </summary>
         /// <param name="output">Output stream</param>
-        public void WriteRegFileFormat(TextWriter output)
+        /// <param name="options">Export options</param>
+        public void WriteRegFileFormat(TextWriter output, RegFileExportOptions options)
         {
             List<string> names;
+            bool skipThisEntry = false;
+            if ((options & RegFileExportOptions.NoEmptyKeys) == RegFileExportOptions.NoEmptyKeys)
+            {
+                skipThisEntry = Values.Keys.Count == 0;
+                System.Console.WriteLine("skipThisEntry: {0}", skipThisEntry);
+            }
 
-            if (!string.IsNullOrEmpty(Name))
+
+            if (!skipThisEntry && !string.IsNullOrEmpty(Name))
             {
                 if (RemoveFlag)
                 {
@@ -336,12 +344,13 @@ namespace com.tikumo.regis3
                 }
                 output.WriteLine();
             }
+            else System.Console.WriteLine("SKIPPED");
 
             names = Keys.Keys.ToList<string>();
             names.Sort();
             foreach (string name in names)
             {
-                Keys[name].WriteRegFileFormat(output);
+                Keys[name].WriteRegFileFormat(output, options);
             }
         }
 

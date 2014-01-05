@@ -23,29 +23,22 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-using System.IO;
-
 namespace com.tikumo.regis3
 {
     /// <summary>
-    /// This is the export interface supported by all regis3 exporter functions: given a RegKeyEntry, create a file or a string.
+    /// Exporter options for .REG files
     /// </summary>
-    public interface IRegistryExporter
+    [System.Flags]
+    public enum RegFileExportOptions
     {
         /// <summary>
-        /// Given a registry key description, create a file
+        /// No specific options
         /// </summary>
-        /// <param name="key">Existing registry key description</param>
-        /// <param name="filename">Filename to be created</param>
-        /// <param name="options">Export options</param>
-        void Export(RegKeyEntry key, string filename, RegFileExportOptions options);
+        None = 0,
 
         /// <summary>
-        /// Given a registry key description, write a file to a stream
+        /// Do not create empty output keys
         /// </summary>
-        /// <param name="key">Existing registry key description</param>
-        /// <param name="file">Stream to be written to</param>
-        /// /// <param name="options">Export options</param>
-        void Export(RegKeyEntry key, TextWriter file, RegFileExportOptions options);
+        NoEmptyKeys = (1<<0),
     }
 }

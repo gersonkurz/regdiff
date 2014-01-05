@@ -467,7 +467,7 @@ namespace com.tikumo.regis3
 
                     if (Aliases.ContainsKey(keyName.ToLower()))
                     {
-                        string aliasedName = Aliases[keyName.ToLower()];
+                        string aliasedName = Aliases[keyName.ToLower()].ToLower();
                         if (key2.Keys.ContainsKey(aliasedName))
                         {
                             RegKeyEntry subkey2 = key2.Keys[aliasedName];
@@ -535,7 +535,7 @@ namespace com.tikumo.regis3
                 {
                     if (Aliases.ContainsKey(keyName.ToLower()))
                     {
-                        string aliasedName = Aliases[keyName.ToLower()];
+                        string aliasedName = Aliases[keyName.ToLower()].ToLower();
                         if (!key1.Keys.ContainsKey(aliasedName))
                         {
                             MissingKeysIn1.Add(key2.Keys[keyName]);

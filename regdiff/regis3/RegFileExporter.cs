@@ -54,13 +54,14 @@ namespace com.tikumo.regis3
         /// </summary>
         /// <param name="key">Registry key previously imported (or constructed in memory)</param>
         /// <param name="filename">Filename to save the key in</param>
-        public void Export(RegKeyEntry key, string filename)
+        /// /// <param name="options">Export options</param>
+        public void Export(RegKeyEntry key, string filename, RegFileExportOptions options)
         {
             using (StreamWriter sw = new StreamWriter(File.Open(filename, FileMode.Create), FileEncoding))
             {
                 try
                 {
-                    Export(key, sw);
+                    Export(key, sw, options);
                 }
                 finally
                 {
@@ -74,11 +75,12 @@ namespace com.tikumo.regis3
         /// </summary>
         /// <param name="key">Registry key previously imported (or constructed in memory)</param>
         /// <param name="file">Output text stream</param>
-        public void Export(RegKeyEntry key, TextWriter file)
+        /// /// <param name="options">Export options</param>
+        public void Export(RegKeyEntry key, TextWriter file, RegFileExportOptions options)
         {
             file.WriteLine(Header);
             file.WriteLine();
-            key.WriteRegFileFormat(file);
+            key.WriteRegFileFormat(file, options);
         }
     }
 }

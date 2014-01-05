@@ -42,13 +42,14 @@ namespace com.tikumo.regis3
         /// </summary>
         /// <param name="key">Existing key</param>
         /// <param name="filename">Name for .XML file</param>
-        public void Export(RegKeyEntry key, string filename)
+        /// <param name="options">Export options</param>
+        public void Export(RegKeyEntry key, string filename, RegFileExportOptions options)
         {
             using (StreamWriter sw = new StreamWriter(File.Open(filename, FileMode.Create), Encoding.UTF8))
             {
                 try
                 {
-                    Export(key, sw);
+                    Export(key, sw, options);
                 }
                 finally
                 {
@@ -62,7 +63,8 @@ namespace com.tikumo.regis3
         /// </summary>
         /// <param name="key">Existing key</param>
         /// <param name="file">Output stream</param>
-        public void Export(RegKeyEntry key, TextWriter file)
+        /// <param name="options">Export options</param>
+        public void Export(RegKeyEntry key, TextWriter file, RegFileExportOptions options)
         {
             XmlWriterSettings settings = new XmlWriterSettings();
             settings.Indent = true;
