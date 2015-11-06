@@ -460,7 +460,15 @@ namespace com.tikumo.regis3
             }
             else if( c == '\r' )
             {
-                CurrentValue.SetBinaryType(CurrentDataKind, CreateByteArrayFromString(Buffer.ToString()));
+                try
+                {
+                    CurrentValue.SetBinaryType(CurrentDataKind, CreateByteArrayFromString(Buffer.ToString()));
+                }
+                catch(Exception e)
+                {
+                    Console.WriteLine("Hint: closest section is named [{0}]", CurrentKey.Path);
+                    throw e;
+                }
                 ParserState = ExpectNewline;
             }
             else if (c == '\n')

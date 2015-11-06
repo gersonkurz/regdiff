@@ -68,6 +68,15 @@ namespace com.tikumo.regis3
         }
 
         /// <summary>
+        /// Provide textual representation of this value
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+        {
+            return string.Format("<RegValueEntry: {0}>", Name);
+        }
+
+        /// <summary>
         /// This constructor creates a named value from a Windows registry value
         /// </summary>
         /// <param name="key">Parent registry key</param>
@@ -370,15 +379,16 @@ namespace com.tikumo.regis3
                 {
                     if (bytes.Length == 4)
                     {
-                        Value = (int)BitConverter.ToInt32(bytes, 0);
+                        Value = (int) BitConverter.ToInt32(bytes, 0);
                     }
-                    else
+                    else if( bytes.Length == 8 )
                     {
                         Value = (int) BitConverter.ToInt64(bytes, 0);
                     }
                 }
                 catch (Exception e)
                 {
+                    Console.WriteLine("Note: Type of '{0}' is RegValueEntryKind.DWord, but bytes.Length is {1}", this, bytes.Length);
                     Console.WriteLine(e);
                     throw;
                 }
