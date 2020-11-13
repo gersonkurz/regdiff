@@ -443,7 +443,7 @@ namespace regis3
                     output.Write(separator);
                     separator = ",";
                 }
-                output.Write(b.ToString("X2"));
+                output.Write(b.ToString("x2"));
                 if (bytesWritten < 19)
                     ++bytesWritten;
                 else
