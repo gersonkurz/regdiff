@@ -196,26 +196,24 @@ namespace regis3
             if (Value == null)
                 return null;
 
-            if (Value is byte[])
-                return (byte[])Value;
+            if (Value is byte[] byteArray)
+                return byteArray;
 
-            if (Value is string)
+            if (Value is string stringValue)
             {
                 if (Kind == RegValueEntryKind.MultiSZ)
                 {
-                    string temp = (string)Value;
-                    temp += "\0";
-                    return Encoding.Unicode.GetBytes(temp);
+                    return Encoding.Unicode.GetBytes(stringValue + "\0");
                 }
                 else
                 {
                     return Encoding.Unicode.GetBytes((string)Value);
                 }
             }
-            if (Value is string[])
+            if (Value is string[] stringValues)
             {
-                List<byte> bytes = new List<byte>();
-                foreach (string line in (Value as string[]))
+                var bytes = new List<byte>();
+                foreach (string line in stringValues)
                 {
                     foreach (byte b in Encoding.Unicode.GetBytes(line))
                     {
@@ -224,15 +222,17 @@ namespace regis3
                     bytes.Add(0);
                     bytes.Add(0);
                 }
+                bytes.Add(0);
+                bytes.Add(0);
                 return bytes.ToArray();
             }
-            if (Value is long)
+            if (Value is long lValue)
             {
-                return BitConverter.GetBytes((long) Value);
+                return BitConverter.GetBytes(lValue);
             }
-            if (Value is int)
+            if (Value is int iValue)
             {
-                return BitConverter.GetBytes((int) Value);
+                return BitConverter.GetBytes(iValue);
             }
             return null;
         }
@@ -367,9 +367,16 @@ namespace regis3
                 try
                 {
                     string temp = Encoding.Unicode.GetString(bytes);
-                    while (temp.EndsWith("\0"))
-                        temp = temp.Substring(0, temp.Length - 1);
-                    Value = temp.Split('\0');
+                    if (temp.EndsWith("\0\0"))
+                    {
+                        // this is a properly-formed string
+                        Value = temp.Substring(0, temp.Length - 2).Split('\0');
+                    }
+                    else
+                    {
+                        // this is not a properly-formed string
+                        Value = bytes;
+                    }
                 }
                 catch (Exception e)
                 {
@@ -422,7 +429,7 @@ namespace regis3
             }
         }
 
-        private void WriteHexEncodedValue(TextWriter output, string name, IEnumerable<byte> bytes)
+        private void WriteHexEncodedValue(TextWriter output, string name, byte[] bytes)
         {
             string strHeader;
 
@@ -528,7 +535,7 @@ namespace regis3
                     output.WriteLine("{0}=dword:{1}", name, ((long)Value).ToString("X8"));
                 }
             }
-            else if( (Value != null ) && (Value is byte[]) )
+            else if( (Value != null) && (Value is byte[]) )
             {
                 WriteHexEncodedValue(output, name, Value as byte[]);
             }
