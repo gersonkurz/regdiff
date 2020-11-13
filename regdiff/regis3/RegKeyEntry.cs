@@ -318,9 +318,7 @@ namespace regis3
             if ((options & RegFileExportOptions.NoEmptyKeys) == RegFileExportOptions.NoEmptyKeys)
             {
                 skipThisEntry = Values.Keys.Count == 0;
-                System.Console.WriteLine("skipThisEntry: {0}", skipThisEntry);
             }
-
 
             if (!skipThisEntry && !string.IsNullOrEmpty(Name))
             {
@@ -345,7 +343,6 @@ namespace regis3
                 }
                 output.WriteLine();
             }
-            else System.Console.WriteLine("SKIPPED");
 
             names = Keys.Keys.ToList<string>();
             names.Sort();

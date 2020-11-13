@@ -1,0 +1,13 @@
+# git ignore file
+*.sbr
+*.tlog
+*.log
+*.bak
+*.pyc
+.vs/*
+regdiff/regdiff/obj/*
+regdiff/regis3/obj/*
+regdiff/.vs/*
+*/bin/*
+msbuild.log
+bin/*
