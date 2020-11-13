@@ -25,7 +25,7 @@
 
 using System.IO;
 
-namespace com.tikumo.regis3.ini
+namespace regis3.ini
 {
     /// <summary>
     /// This class represents an INI File. INI files are really just a special case of an INI file section.

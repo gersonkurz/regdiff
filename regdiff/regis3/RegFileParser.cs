@@ -26,7 +26,7 @@
 using System;
 using System.Globalization;
 
-namespace com.tikumo.regis3
+namespace regis3
 {
     /// <summary>
     /// This is the default parser for .REG files. It takes a string as input and produces a valid registry tree from it.

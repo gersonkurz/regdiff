@@ -23,7 +23,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace com.tikumo.regis3
+namespace regis3
 {
     /// <summary>
     /// When comparing two registry files, this class identifies a mismatch in the data of two registry values that are located

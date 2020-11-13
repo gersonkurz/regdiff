@@ -23,7 +23,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace com.tikumo.regis3
+namespace regis3
 {
     /// <summary>
     /// This is a helper class that represents a value that exists in both keys, but has different value kinds (and by definition

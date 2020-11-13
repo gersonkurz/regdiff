@@ -25,7 +25,7 @@
 
 using Microsoft.Win32;
 
-namespace com.tikumo.regis3
+namespace regis3
 {
     /// <summary>
     /// This is a special importer that is used when comparing .REG files to values in the registry: rather than specifying an

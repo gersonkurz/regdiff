@@ -23,7 +23,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace com.tikumo.regis3
+namespace regis3
 {
     /// <summary>
     /// Available options when exporting a RegKeyEntry tree back to the registry

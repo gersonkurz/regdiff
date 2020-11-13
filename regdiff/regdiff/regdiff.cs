@@ -28,7 +28,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using com.tikumo.regis3;
+using regis3;
 using Microsoft.Win32;
 using System.IO;
 using System.Security.Principal;
@@ -221,8 +221,7 @@ namespace com.tikumo.regdiff
                     }
                     if (importer == null)
                     {
-                        string rootPathWithoutHive;
-                        RegistryKey key = Regis3.OpenRegistryHive(filename, out rootPathWithoutHive, CurrentRegistryView);
+                        var key = Regis3.OpenRegistryHive(filename, out string rootPathWithoutHive, CurrentRegistryView);
                         if (key != null)
                         {
                             importer = new RegistryImporter(key, rootPathWithoutHive);

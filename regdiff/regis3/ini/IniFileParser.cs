@@ -25,7 +25,7 @@
 
 using System;
 
-namespace com.tikumo.regis3.ini
+namespace regis3.ini
 {
     /// <summary>
     /// This class implements a parser for .INI files
@@ -36,7 +36,7 @@ namespace com.tikumo.regis3.ini
         private IniFileSection CurrentSection;
         private int NumberOfClosingBracketsExpected;
         private delegate IniFileSection CreateSectionFromNameHandler(string sectionName);
-        private CreateSectionFromNameHandler CreateSectionFromName;
+        private readonly CreateSectionFromNameHandler CreateSectionFromName;
         private string CurrentValueName;
         private string CurrentValueData;
         private string CurrentComment;

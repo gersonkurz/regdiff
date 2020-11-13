@@ -32,7 +32,7 @@ using Microsoft.Win32;
 using System.Security.AccessControl;
 using System.Security.Principal;
 
-namespace com.tikumo.regis3
+namespace regis3
 {
     /// <summary>
     /// This class represents a registry key in memory
@@ -310,7 +310,8 @@ namespace com.tikumo.regis3
         /// </summary>
         /// <param name="output">Output stream</param>
         /// <param name="options">Export options</param>
-        public void WriteRegFileFormat(TextWriter output, RegFileExportOptions options)
+        /// <param name="replacementLookup">Replacement variables</param>
+        public void WriteRegFileFormat(TextWriter output, RegFileExportOptions options, Dictionary<string, string> replacementLookup)
         {
             List<string> names;
             bool skipThisEntry = false;
@@ -332,14 +333,14 @@ namespace com.tikumo.regis3
                     output.WriteLine("[{0}]", Path);
                     if (DefaultValue != null)
                     {
-                        DefaultValue.WriteRegFileFormat(output);
+                        DefaultValue.WriteRegFileFormat(output, replacementLookup);
                     }
 
                     names = Values.Keys.ToList<string>();
                     names.Sort();
                     foreach (string name in names)
                     {
-                        Values[name].WriteRegFileFormat(output);
+                        Values[name].WriteRegFileFormat(output, replacementLookup);
                     }
                 }
                 output.WriteLine();
@@ -350,7 +351,7 @@ namespace com.tikumo.regis3
             names.Sort();
             foreach (string name in names)
             {
-                Keys[name].WriteRegFileFormat(output, options);
+                Keys[name].WriteRegFileFormat(output, options, replacementLookup);
             }
         }
 
@@ -412,9 +413,8 @@ namespace com.tikumo.regis3
                 }
             }
 
-            string rootPath = env.Map(Path);
-            string rootPathWithoutHive;
-            using (RegistryKey registryKey = Regis3.OpenRegistryHive(rootPath, out rootPathWithoutHive, registryView))
+            string rootPath = (env == null) ? Path : env.Map(Path);
+            using (RegistryKey registryKey = Regis3.OpenRegistryHive(rootPath, out string rootPathWithoutHive, registryView))
             {
                 if ((registryWriteOptions & RegistryWriteOptions.AllAccessForEveryone) != 0)
                 {

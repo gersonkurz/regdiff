@@ -28,7 +28,7 @@ using System.Collections.Generic;
 using Microsoft.Win32;
 using System.Diagnostics;
 
-namespace com.tikumo.regis3
+namespace regis3
 {
     /// <summary>
     /// Static helper functions of general use when dealing with registry objects
@@ -84,7 +84,7 @@ namespace com.tikumo.regis3
         /// </summary>
         /// <param name="sourcePath">Absolute registry path (i.e. one starting with HKEY_LOCAL_MACHINE or something similar)</param>
         /// <param name="registryView">Type of registry you want to see (32-bit, 64-bit, default).</param>
-        public static void DeleteKeyRecursive(string sourcePath, RegistryView registryView)
+        public static bool DeleteKeyRecursive(string sourcePath, RegistryView registryView)
         {
             string subKeyName;
             using(RegistryKey root = OpenRegistryHive(sourcePath, out subKeyName, registryView))
@@ -92,10 +92,12 @@ namespace com.tikumo.regis3
                 try
                 {
                     root.DeleteSubKeyTree(subKeyName);
+                    return true;
                 }
                 catch (Exception e)
                 {
                     Trace.TraceError("Exception {0} caught while deleting registry key", e);
+                    return false;
                 }
             }
         }

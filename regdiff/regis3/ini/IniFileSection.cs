@@ -27,7 +27,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace com.tikumo.regis3.ini
+namespace regis3.ini
 {
     /// <summary>
     /// This class represents a section in an .INI file. INI files can be organized to have recursive sections, so for example

@@ -25,8 +25,9 @@
 
 using System.Text;
 using System.IO;
+using System.Collections.Generic;
 
-namespace com.tikumo.regis3
+namespace regis3
 {
     /// <summary>
     /// This is an exporter that takes a RegKeyEntry and exports it. 
@@ -37,6 +38,7 @@ namespace com.tikumo.regis3
     {
         private readonly string Header;
         private readonly Encoding FileEncoding;
+        private Dictionary<string, string> ReplacementLookup;
 
         /// <summary>
         /// This constructor creates an exporter with a fixed header and encoding
@@ -47,6 +49,7 @@ namespace com.tikumo.regis3
         {
             Header = header;
             FileEncoding = fileEncoding;
+            ReplacementLookup = null;
         }
 
         /// <summary>
@@ -80,7 +83,17 @@ namespace com.tikumo.regis3
         {
             file.WriteLine(Header);
             file.WriteLine();
-            key.WriteRegFileFormat(file, options);
+            key.WriteRegFileFormat(file, options, ReplacementLookup);
+        }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>   Sets replacement lookup. </summary>
+        ///
+        /// <param name="replacement">  The replacement.</param>
+        ///-------------------------------------------------------------------------------------------------
+        public void SetReplacementLookup(Dictionary<string, string> replacement)
+        {
+            ReplacementLookup = replacement;
         }
     }
 }

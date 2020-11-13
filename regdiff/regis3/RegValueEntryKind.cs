@@ -23,7 +23,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace com.tikumo.regis3
+namespace regis3
 {
     /// <summary>
     /// This class defines the known registry value types. It includes more types than the standard .Net enum RegistryValueKind

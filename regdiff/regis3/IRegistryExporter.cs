@@ -23,9 +23,10 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+using System.Collections.Generic;
 using System.IO;
 
-namespace com.tikumo.regis3
+namespace regis3
 {
     /// <summary>
     /// This is the export interface supported by all regis3 exporter functions: given a RegKeyEntry, create a file or a string.
@@ -47,5 +48,12 @@ namespace com.tikumo.regis3
         /// <param name="file">Stream to be written to</param>
         /// /// <param name="options">Export options</param>
         void Export(RegKeyEntry key, TextWriter file, RegFileExportOptions options);
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>   Sets replacement lookup. </summary>
+        ///
+        /// <param name="replacement">  The replacement.</param>
+        ///-------------------------------------------------------------------------------------------------
+        void SetReplacementLookup(Dictionary<string, string> replacement);
     }
 }

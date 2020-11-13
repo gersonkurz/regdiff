@@ -26,7 +26,7 @@
 using System;
 using System.Text;
 
-namespace com.tikumo.regis3
+namespace regis3
 {
     /// <summary>
     /// This is a generic parser of file content. Both the .REG parser and the .INI parser are concrete implementations of this class.

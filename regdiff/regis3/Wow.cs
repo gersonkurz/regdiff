@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace com.tikumo.regis3
+namespace regis3
 {
     /// <summary>
     /// Helper class for Windows-on-Windows support (32-bit processes on 64-bit Windows)

@@ -29,7 +29,7 @@ using System.IO;
 using System.Text;
 using Microsoft.Win32;
 
-namespace com.tikumo.regis3
+namespace regis3
 {
     /// <summary>
     /// This class represents a registry value in a 
@@ -104,7 +104,11 @@ namespace com.tikumo.regis3
         /// <param name="env">Helper class that can map $$-escaped strings.</param>
         public void WriteToTheRegistry(RegistryKey registryKey, RegEnvReplace env)
         {
-            string name = env.Map(Name);
+            string name = Name;
+            if (env != null)
+            {
+                name = env.Map(Name);
+            }
             RegistryValueKind kind = MapRegis3KindToNativeKind(Kind);
             if (Value is string)
             {
@@ -484,7 +488,8 @@ namespace com.tikumo.regis3
         /// Helper function: Export this function in .REG file format to an output stream
         /// </summary>
         /// <param name="output">Output stream</param>
-        public void WriteRegFileFormat(TextWriter output)
+        /// <param name="replacementLookup">Replacement variables</param>
+        public void WriteRegFileFormat(TextWriter output, Dictionary<string, string> replacementLookup)
         {
             string name = IsDefaultValue ? "@" : string.Format("\"{0}\"", EscapeString(Name));
 
@@ -495,6 +500,13 @@ namespace com.tikumo.regis3
             else if (Kind == RegValueEntryKind.SZ)
             {
                 string value = (string)Value;
+                if(replacementLookup != null)
+                {
+                    foreach (var key in replacementLookup.Keys)
+                    {
+                        value = value.Replace(key, replacementLookup[key]);
+                    }
+                }
                 output.WriteLine("{0}=\"{1}\"", name, EscapeString(value));
             }
             else if (Kind == RegValueEntryKind.DWord)

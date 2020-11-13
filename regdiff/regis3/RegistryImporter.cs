@@ -26,7 +26,7 @@
 using Microsoft.Win32;
 using System.Diagnostics;
 
-namespace com.tikumo.regis3
+namespace regis3
 {
     /// <summary>
     /// This is the standard importer to read data from an existing registry (on the local machine, or on a remote machine).

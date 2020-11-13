@@ -23,7 +23,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-namespace com.tikumo.regis3.ini
+namespace regis3.ini
 {
     /// <summary>
     /// Options for parsing .INI files

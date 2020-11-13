@@ -30,13 +30,15 @@ using System.Text;
 using System.IO;
 using System.Xml;
 
-namespace com.tikumo.regis3
+namespace regis3
 {
     /// <summary>
     /// This is an exporter that takes a registry key and exports it in XML format
     /// </summary>
     public class XmlRegFileExporter : IRegistryExporter
     {
+        private Dictionary<string, string> ReplacementLookup;
+
         /// <summary>
         /// Export the key to a given file
         /// </summary>
@@ -134,6 +136,16 @@ namespace com.tikumo.regis3
                 }
                 Writer.WriteEndElement();
             }
+        }
+
+        ///-------------------------------------------------------------------------------------------------
+        /// <summary>   Sets replacement lookup. </summary>
+        ///
+        /// <param name="replacement">  The replacement.</param>
+        ///-------------------------------------------------------------------------------------------------
+        public void SetReplacementLookup(Dictionary<string, string> replacement)
+        {
+            ReplacementLookup = replacement;
         }
 
         private static void WriteXmlFileFormat(XmlWriter Writer, RegKeyEntry key)

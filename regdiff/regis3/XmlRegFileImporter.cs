@@ -30,7 +30,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace com.tikumo.regis3
+namespace regis3
 {
     /// <summary>
     /// This is the importer for .XML files.

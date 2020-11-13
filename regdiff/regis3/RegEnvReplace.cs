@@ -28,9 +28,9 @@ using System.Collections.Generic;
 using System.Text;
 using System.Xml;
 using System.IO;
-using com.tikumo.regis3.ini;
+using regis3.ini;
 
-namespace com.tikumo.regis3
+namespace regis3
 {
     /// <summary>
     /// This class supports replacing $$ variables in .REG files by dynamic content.

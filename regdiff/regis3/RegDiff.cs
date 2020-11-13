@@ -29,7 +29,7 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics;
 
-namespace com.tikumo.regis3
+namespace regis3
 {
     /// <summary>
     /// This class takes two (named) registry keys and produces a set of differences between the two keys.

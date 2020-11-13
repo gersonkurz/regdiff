@@ -26,7 +26,7 @@
 using System;
 using System.IO;
 
-namespace com.tikumo.regis3
+namespace regis3
 {
     /// <summary>
     /// This is a helper class that takes a .REG filename (or the content of a .REG file) and identifies the correct parser.

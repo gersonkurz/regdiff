@@ -25,7 +25,7 @@
 
 using System.Text;
 
-namespace com.tikumo.regis3
+namespace regis3
 {
     /// <summary>
     /// Subclass of RegFileExporter for Version 4 files (=ANSI Encoding, Windows NT 4.0)
