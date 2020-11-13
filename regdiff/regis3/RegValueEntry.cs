@@ -424,32 +424,40 @@ namespace regis3
 
         private void WriteHexEncodedValue(TextWriter output, string name, IEnumerable<byte> bytes)
         {
+            string strHeader;
+
             if (Kind == RegValueEntryKind.Binary)
             {
-                output.Write("{0}=hex:", name);
+                strHeader = $"{name}=hex:";
             }
             else
             {
                 int hexkind = (int)Kind;
-                output.Write("{0}=hex({1}):", name, hexkind.ToString("x"));
+                string strk = hexkind.ToString("x");
+                strHeader = $"{name}=hex({strk}):";
             }
-            int bytesWritten = 0;
-            string separator = ",";
+            output.Write(strHeader);
+
+            int strlen = strHeader.Length;
             int i = 0;
             foreach(byte b in bytes)
             {
                 if (i > 0)
                 {
-                    output.Write(separator);
-                    separator = ",";
+                    output.Write(",");
+                    strlen += 1;
                 }
-                output.Write(b.ToString("x2"));
-                if (bytesWritten < 19)
-                    ++bytesWritten;
+                if(strlen < 76)
+                {
+                    output.Write(b.ToString("x2"));
+                    strlen += 2;
+                }
                 else
                 {
-                    bytesWritten = 0;
-                    separator = ",\\\r\n  ";
+                    // start new line
+                    output.Write("\\\r\n  ");
+                    output.Write(b.ToString("x2"));
+                    strlen = 4;
                 }
                 ++i;
             }
