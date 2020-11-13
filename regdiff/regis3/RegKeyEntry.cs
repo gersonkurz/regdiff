@@ -317,7 +317,10 @@ namespace regis3
             bool skipThisEntry = false;
             if ((options & RegFileExportOptions.NoEmptyKeys) == RegFileExportOptions.NoEmptyKeys)
             {
-                skipThisEntry = Values.Keys.Count == 0;
+                if ((Values.Keys.Count == 0) && (DefaultValue == null))
+                {
+                    skipThisEntry = true;
+                }
             }
 
             if (!skipThisEntry && !string.IsNullOrEmpty(Name))

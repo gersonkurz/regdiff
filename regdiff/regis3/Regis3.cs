@@ -46,8 +46,14 @@ namespace regis3
         /// <param name="rootPathWithoutHive">Returns the relative path</param>
         /// <param name="registryView">Type of registry you want to see (32-bit, 64-bit, default).</param>
         /// <param name="remoteMachineName">Name of a remote machine. User must ensure that caller has sufficient privileges to access the key</param>
+        ///  <param name="raiseWarningIfFailed">By default, a warning is raised if the key does not exist; sometimes it may be desirable anyway</param>
         /// <returns>"registry hive" root</returns>
-        public static RegistryKey OpenRegistryHive(string rootPath, out string rootPathWithoutHive, RegistryView registryView, string remoteMachineName = null)
+        public static RegistryKey OpenRegistryHive(
+            string rootPath, 
+            out string rootPathWithoutHive, 
+            RegistryView registryView, 
+            string remoteMachineName = null,
+            bool raiseWarningIfFailed = true)
         {
             rootPathWithoutHive = "";
             bool found = false;
@@ -75,7 +81,10 @@ namespace regis3
                     }
                 }
             }
-            Trace.TraceWarning("'{0}' is not a well-formed registry path", rootPath);
+            if(raiseWarningIfFailed)
+            {
+                Trace.TraceWarning("'{0}' is not a well-formed registry path", rootPath);
+            }
             return null;
         }
 

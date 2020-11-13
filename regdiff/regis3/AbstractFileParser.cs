@@ -134,7 +134,6 @@ namespace regis3
                 ParserState(c);
                 ++CurrentIndex;
             }
-            ParserState('\0');
         }
     }
 }

@@ -221,7 +221,11 @@ namespace com.tikumo.regdiff
                     }
                     if (importer == null)
                     {
-                        var key = Regis3.OpenRegistryHive(filename, out string rootPathWithoutHive, CurrentRegistryView);
+                        var key = Regis3.OpenRegistryHive(
+                            filename, 
+                            out string rootPathWithoutHive, 
+                            CurrentRegistryView,
+                            raiseWarningIfFailed: false);
                         if (key != null)
                         {
                             importer = new RegistryImporter(key, rootPathWithoutHive);
