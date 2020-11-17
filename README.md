@@ -246,6 +246,7 @@ You can use the /? option to get a list of all command line parameters.
               /XML: use .XML format
            /NOCASE: ignore case (default: case-sensitive)
             /WRITE: write keys/values to registry
+         /COMMENTS: support semicolon and hashtag comments in .REG files
         /ALLACCESS: grant all access to everyone (when using the /write option)
            /PARAMS: read value params from file (when using the /write option)
             /ALIAS: alias FOO=BAR
