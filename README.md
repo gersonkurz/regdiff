@@ -43,7 +43,7 @@ Example:
 
 ## How to create a diff file
 
-You can use `regdiff.exe` to create a registry file that contains only the differences between to files using the /diff option. If you are comparing two files A and B, then the diff file will follow these rules:
+You can use `regdiff.exe` to create a registry file that contains only the differences between to files using the `/diff` option. If you are comparing two files A and B, then the diff file will follow these rules:
 
 - if a key is missing in A, it is to be added
 - if a key is missing in B, it is to be removed
@@ -57,7 +57,7 @@ Example:
 
 ## How to create a merge file
 
-You can use `regdiff.exe` to create a registry file that contains the merged content of two files using the /merge option. If you are comparing two files A and B, then the merge file will follow these rules:
+You can use `regdiff.exe` to create a registry file that contains the merged content of two files using the `/merge` option. If you are comparing two files A and B, then the merge file will follow these rules:
 
 - includes all information from key B
 - if a key exists in A but is missing in B, it is to be removed
@@ -78,7 +78,7 @@ Example:
 
 ## How to create a sorted .REG file
 
-You can use `regdiff.exe` to create a sorted .REG file. Here, "sorted" means that all keys and all values inside keys are alphanumerically sorted (not case-sensitive). To do so, you must specify a single input file and use the /merge option.
+You can use `regdiff.exe` to create a sorted .REG file. Here, "sorted" means that all keys and all values inside keys are alphanumerically sorted (not case-sensitive). To do so, you must specify a single input file and use the `/merge` option.
 
 Example:
 
@@ -86,7 +86,7 @@ Example:
 
 ## How to remove empty keys from the output .REG file
 
-If you create an output file using /merge, it will by default include empty keys. However, you can exclude those by using the /NO-EMPTY-KEYS option.
+If you create an output file using `/merge`, it will by default include empty keys. However, you can exclude those by using the `/NO-EMPTY-KEYS` option.
 
 Example:
 
@@ -94,16 +94,16 @@ Example:
     
 ## How to compare the current registry settings with a given .REG file
 
-You can use `regdiff.exe` to compare the current registry with a given .REG file using the /registry option.
+You can use `regdiff.exe` to compare the current registry with a given .REG file using the `/registry` option.
 
 Example:
 
     regdiff.exe hklm_software.reg /registry
 
-The difference between the HKEY_LOCAL_MACHINE-syntax and the /registry parameter:
+The difference between the HKEY_LOCAL_MACHINE-syntax and the `/registry` parameter:
 
-- The /registry parameter checks all registry keys that are mentioned in the .REG file.
-- The HKEY_LOCAL_MACHINE-syntax syntax checks all registry keys that exist under the given registry key.
+- The `/registry` parameter checks all registry keys that are mentioned in the .REG file.
+- The `HKEY_LOCAL_MACHINE`-syntax syntax checks all registry keys that exist under the given registry key.
 
 Example: say, you have a registry that has the following keys:
 
@@ -116,7 +116,7 @@ You want to compare this registry with a .REG file that contains
 
     HKEY_LOCAL_MACHINE\Software\foo\test
 
-Here, using /r will not find foo\hidden, whereas HKEY_LOCAL_MACHINE\Software\foo will do so.
+Here, using `/r` will not find `foo\hidden`, whereas `HKEY_LOCAL_MACHINE\Software\foo` will do so.
 
 ## How to compare renamed keys
 
@@ -130,7 +130,7 @@ Sometimes, I have multiple copies of the softare installed on my machine, with n
     HKEY_LOCAL_MACHINE\Software\MyProductName.Version2
     HKEY_LOCAL_MACHINE\Software\MyProductName.Version3
 
-Starting with regdiff version 4.2, you can rename two such keys by using the /alias option, like this:
+Starting with regdiff version 4.2, you can rename two such keys by using the `/alias` option, like this:
 
     regdiff.exe  HKEY_LOCAL_MACHINE\Software\MyProductName.Version1 HKEY_LOCAL_MACHINE\Software\MyProductName.Version2 /ALIAS MyProductName.Version1=MyProductName.Version2
 
@@ -138,17 +138,17 @@ This will cause the DIFF logic to ignore the key name and just compare anything 
 
 ## The .REG file format
 
-The default file format is the unicode format introduced with Windows 2000. Its header reads Windows Registry Editor Version 5.00. You can also use the ANSI format REGEDIT4 used in earlier versions of Windows NT 4 by using the /4 option.
+The default file format is the unicode format introduced with Windows 2000. Its header reads Windows Registry Editor Version 5.00. You can also use the ANSI format REGEDIT4 used in earlier versions of Windows NT 4 by using the `/4` option.
 
 Example: Export the registry in REGEDIT4 format:
 
     regdiff.exe HKEY_LOCAL_MACHINE\SOFTWARE /4 /merge hklm_software.reg
 
-Note: The /4 option can be combined with any of the above options.
+Note: The `/4` option can be combined with any of the above options.
 
 ## Writing back the registry
 
-Given a (single) .REG file, you can use the /WRITE option to write back the contents to the registry
+Given a (single) .REG file, you can use the `/WRITE` option to write back the contents to the registry
 
 Example:
 
@@ -215,25 +215,29 @@ Note that in the example above, section headers are ignored.
 
 ## Playing with fire
 
-When you write back the registry using /WRITE, the default option is to not specify any security attributes, so the default security attributes are going to be used instead. If you specify the /ALLACCESS option, then a very fine "grant full control to everyone" attribute is going to be set - on everything you're writing. Some people will argue this is a security risk, so viewer discretion is advised.
+When you write back the registry using `/WRITE`, the default option is to not specify any security attributes, so the default security attributes are going to be used instead. If you specify the `/ALLACCESS` option, then a very fine "grant full control to everyone" attribute is going to be set - on everything you're writing. Some people will argue this is a security risk, so viewer discretion is advised.
 
 ## Using the XML format
 
-And finally, version 4.0 allows you to export the registry in .XML format using the /XML switch, or by specifying a filename that ends in .XML.
+And finally, version 4.0 allows you to export the registry in .XML format using the `/XML` switch, or by specifying a filename that ends in .XML.
+
+## Handling comments
+
+By default, you cannot pass comments in .REG files; if you specify the `/COMMENTS` parameter, you can use both ';' and '#' comments.
 
 ## Distinguishing 32-bit/64-bit registry
 
 If you are running a 32-bit operating system, you only have a 32-bit registry. If you are running a 64-bit operating system:
 
-- If your process is 32-bit (default), then you see the 32-bit registry by default. However, if you specify /64, you get the 64-bit registry instead.
-- If your process is 64-bit, then you see the 64-bit registry by default. However, if you specify /32, you get the 32-bit registry instead.
+- If your process is 32-bit (default), then you see the 32-bit registry by default. However, if you specify `/64`, you get the 64-bit registry instead.
+- If your process is 64-bit, then you see the 64-bit registry by default. However, if you specify `/32`, you get the 32-bit registry instead.
 
 ## Options overview
 
-You can use the /? option to get a list of all command line parameters.
+You can use the `/?` option to get a list of all command line parameters.
 
     ...\regdiff\bin\Release>regdiff /?
-    REGDIFF - Version 4.4
+    REGDIFF - Version 4.5
     Freeware written by Gerson Kurz (http://p-nand-q.com) [32-bit process on 64-bit OS]
     
     USAGE: REGDIFF.EXE [OPTIONS] FILE {FILE}.
