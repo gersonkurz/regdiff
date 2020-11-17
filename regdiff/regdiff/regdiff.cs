@@ -57,6 +57,7 @@ namespace com.tikumo.regdiff
         private bool FileFormatXML;
         private bool Quiet;
         private bool NoEmptyKeys;
+        private bool AllowComments;
         private bool CompareAgainstRegistry;
         private string DiffFile;
         private bool WriteToTheRegistry;
@@ -104,6 +105,7 @@ namespace com.tikumo.regdiff
             Args.Add(InputArgType.Flag, "xml", false, Presence.Optional, "use .XML format");
             Args.Add(InputArgType.Flag, "nocase", false, Presence.Optional, "ignore case (default: case-sensitive)");
             Args.Add(InputArgType.Flag, "write", false, Presence.Optional, "write keys/values to registry");
+            Args.Add(InputArgType.Flag, "comments", false, Presence.Optional, "allow line comments");
             Args.Add(InputArgType.Flag, "allaccess", false, Presence.Optional, "grant all access to everyone (when using the /write option)");
             Args.Add(InputArgType.Parameter, "params", null, Presence.Optional, "read value params from file (when using the /write option)");
             Args.Add(InputArgType.MultipleParameters, "alias", null, Presence.Optional, "alias FOO=BAR");
@@ -148,6 +150,7 @@ namespace com.tikumo.regdiff
             FileFormat4 = Args.GetFlag("4");
             Quiet = Args.GetFlag("quiet");
             NoEmptyKeys = Args.GetFlag("no-empty-keys");
+            AllowComments = Args.GetFlag("comments");
             FileFormatXML = Args.GetFlag("xml");
             DiffFile = Args.GetString("diff");
             MergeFile = Args.GetString("merge");
@@ -157,7 +160,15 @@ namespace com.tikumo.regdiff
             ParamsFilename = Args.GetString("params");
             if (WriteToTheRegistry)
             {
-                Options = RegFileImportOptions.AllowSemicolonComments | RegFileImportOptions.AllowHashtagComments | RegFileImportOptions.AllowVariableNamesForNonStringVariables | RegFileImportOptions.IgnoreWhitespaces;
+                Options = RegFileImportOptions.AllowSemicolonComments | 
+                          RegFileImportOptions.AllowHashtagComments | 
+                          RegFileImportOptions.AllowVariableNamesForNonStringVariables | 
+                          RegFileImportOptions.IgnoreWhitespaces;
+            }
+            if(AllowComments)
+            {
+                Options |= RegFileImportOptions.AllowSemicolonComments;
+                Options |= RegFileImportOptions.AllowHashtagComments;
             }
 
             if (Wow.Is64BitProcess)

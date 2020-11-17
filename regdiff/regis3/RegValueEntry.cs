@@ -205,6 +205,10 @@ namespace regis3
                 {
                     return Encoding.Unicode.GetBytes(stringValue + "\0");
                 }
+                else if (Kind == RegValueEntryKind.ExpandSZ)
+                {
+                    return Encoding.Unicode.GetBytes(stringValue + "\0");
+                }
                 else
                 {
                     return Encoding.Unicode.GetBytes((string)Value);
@@ -454,7 +458,7 @@ namespace regis3
                     output.Write(",");
                     strlen += 1;
                 }
-                if(strlen < 76)
+                if(strlen < 77)
                 {
                     output.Write(b.ToString("x2"));
                     strlen += 2;
@@ -528,11 +532,11 @@ namespace regis3
             {
                 if (Value is int)
                 {
-                    output.WriteLine("{0}=dword:{1}", name, ((int)Value).ToString("X8"));
+                    output.WriteLine("{0}=dword:{1}", name, ((int)Value).ToString("x8"));
                 }
                 else
                 {
-                    output.WriteLine("{0}=dword:{1}", name, ((long)Value).ToString("X8"));
+                    output.WriteLine("{0}=dword:{1}", name, ((long)Value).ToString("x8"));
                 }
             }
             else if( (Value != null) && (Value is byte[]) )
