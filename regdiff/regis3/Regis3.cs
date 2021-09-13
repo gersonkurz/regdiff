@@ -124,14 +124,12 @@ namespace regis3
             { "HKEY_LOCAL_MACHINE", RegistryHive.LocalMachine },
             { "HKEY_PERFORMANCE_DATA", RegistryHive.PerformanceData },
             { "HKEY_CURRENT_CONFIG", RegistryHive.CurrentConfig },
-            { "HKEY_DYN_DATA", RegistryHive.DynData },
             { "HKCR", RegistryHive.ClassesRoot },
             { "HKCU", RegistryHive.CurrentUser },
             { "HKLM", RegistryHive.LocalMachine },
             { "HKU", RegistryHive.Users },
             { "HKPD", RegistryHive.PerformanceData },
             { "HKCC", RegistryHive.CurrentConfig },
-            { "HKDD", RegistryHive.DynData },
         };
         #endregion
 
