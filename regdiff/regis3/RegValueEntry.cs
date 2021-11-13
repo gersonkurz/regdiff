@@ -534,9 +534,13 @@ namespace regis3
                 {
                     output.WriteLine("{0}=dword:{1}", name, ((int)Value).ToString("x8"));
                 }
-                else
+                else if (Value is long)
                 {
                     output.WriteLine("{0}=dword:{1}", name, ((long)Value).ToString("x8"));
+                }
+                else if ((Value != null) && (Value is byte[]))
+                {
+                    WriteHexEncodedValue(output, name, Value as byte[]);
                 }
             }
             else if( (Value != null) && (Value is byte[]) )
