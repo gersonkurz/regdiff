@@ -1,261 +1,228 @@
-# REGDIFF - Version 4.4
+# REGDIFF - Version 5.0.0
 
-regdiff is a small command line tool to compare two registry files, export the registry, merge .REG files and much more. Version 4.0 has been completely rewritten in C#, with a much better parser than before (I always say that, don't I?). And it is now finally hosted online, over at code.google.com
+regdiff is a command line tool to compare two registry files, export the registry, merge .REG files and much more. Version 5.0 is a complete rewrite in Go, providing cross-platform support for .REG file operations with native Windows registry access.
 
-regdiff.exe is freeware with a very liberal BSD-style license (i.e. free for any use including commercial).
+regdiff is freeware under the MIT license (free for any use including commercial).
 
-## Download
+## Installation
 
-Note: You'll need the .NET Framework 4.5 for these tools. It comes by default with Windows 8 or higher, but you can manually download it for some older versions of Windows..
+```bash
+go install github.com/gersonkurz/go-regdiff/cmd/regdiff@latest
+```
 
-You can download a binary version 4.3 here. The full sourcecode is available on github.com
+Or build from source:
+
+```bash
+git clone https://github.com/gersonkurz/go-regdiff
+cd go-regdiff
+go build ./cmd/regdiff
+```
 
 ## Requirements
 
-- .NET 4.5 - If you're still on Windows XP, you're out of luck.
-- Administrative rights. Duh, you're accessing the registry, dude!
+- Go 1.21 or higher (for building)
+- Administrative rights for registry operations on Windows
 
 ## Features
 
-The marketing department tells me to write about its most outstanding features, so here they are:
-
 - Compare, diff and merge .REG files
-- Compare, diff and merge registry values encoded in .XML files
-- Compare, diff and merge the registry
-- Support for both ANSI and UNICODE style .REG files
-- It's free!
+- Compare, diff and merge the live Windows registry
+- Support for both ANSI (REGEDIT4) and Unicode (Windows Registry Editor Version 5.00) .REG files
+- Variable substitution with `$$VAR$$` syntax
+- Parameter files (.INI or .XML format)
+- Key aliasing for comparing renamed keys
+- Cross-platform .REG file processing (Windows registry access requires Windows)
 
 ## How to compare two .REG files
 
-The most basic usage is just specifying two filenames.
+The most basic usage is specifying two filenames.
 
-Example:
-
-    regdiff.exe foo.reg bar.reg
+```
+regdiff foo.reg bar.reg
+```
 
 ## How to compare a registry key with a given .REG file
 
-You can use `regdiff.exe` to compare any registry key with a given .REG file.
+You can use regdiff to compare any registry key with a given .REG file.
 
-Example:
-
-    regdiff.exe HKEY_LOCAL_MACHINE\SOFTWARE hklm_software.reg
+```
+regdiff HKEY_LOCAL_MACHINE\SOFTWARE hklm_software.reg
+```
 
 ## How to create a diff file
 
-You can use `regdiff.exe` to create a registry file that contains only the differences between to files using the `/diff` option. If you are comparing two files A and B, then the diff file will follow these rules:
+Use the `/DIFF` option to create a registry file containing only the differences between two files. If comparing files A and B:
 
-- if a key is missing in A, it is to be added
-- if a key is missing in B, it is to be removed
-- if a value is missing in A, it is to be added
-- if a value is missing in B, it is to be removed
-- if a value has changed, use the data from B
+- Keys missing in A are marked for addition
+- Keys missing in B are marked for removal
+- Values missing in A are marked for addition
+- Values missing in B are marked for removal
+- Changed values use data from B
 
-Example:
-
-    regdiff.exe HKEY_LOCAL_MACHINE\SOFTWARE hklm_software.reg /diff differences.reg
+```
+regdiff HKEY_LOCAL_MACHINE\SOFTWARE hklm_software.reg /DIFF:differences.reg
+```
 
 ## How to create a merge file
 
-You can use `regdiff.exe` to create a registry file that contains the merged content of two files using the `/merge` option. If you are comparing two files A and B, then the merge file will follow these rules:
+Use the `/MERGE` option to create a registry file with merged content. If comparing files A and B:
 
-- includes all information from key B
-- if a key exists in A but is missing in B, it is to be removed
-- if a value exists in A but is missing in B, it is to be removed
-- if a value has changed from A relative to B, use the data from B
+- Includes all information from B
+- Keys existing only in A are marked for removal
+- Values existing only in A are marked for removal
+- Changed values use data from B
 
-Example:
-
-    regdiff.exe HKEY_LOCAL_MACHINE\SOFTWARE hklm_software.reg /merge merged.reg
+```
+regdiff HKEY_LOCAL_MACHINE\SOFTWARE hklm_software.reg /MERGE:merged.reg
+```
 
 ## How to export a .REG file
 
-You can use `regdiff.exe` to create a .REG file from an existing registry key
+Create a .REG file from an existing registry key:
 
-Example:
-
-    regdiff.exe HKEY_LOCAL_MACHINE\SOFTWARE /merge hklm_software.reg
+```
+regdiff HKEY_LOCAL_MACHINE\SOFTWARE /MERGE:hklm_software.reg
+```
 
 ## How to create a sorted .REG file
 
-You can use `regdiff.exe` to create a sorted .REG file. Here, "sorted" means that all keys and all values inside keys are alphanumerically sorted (not case-sensitive). To do so, you must specify a single input file and use the `/merge` option.
+Specify a single input file with `/MERGE` to create a sorted output (keys and values sorted alphanumerically, case-insensitive):
 
-Example:
+```
+regdiff example.reg /MERGE:sorted_example.reg
+```
 
-    regdiff.exe example.reg /merge sorted_example.reg
+## How to remove empty keys from the output
 
-## How to remove empty keys from the output .REG file
+Use `/NO-EMPTY-KEYS` to exclude keys without values:
 
-If you create an output file using `/merge`, it will by default include empty keys. However, you can exclude those by using the `/NO-EMPTY-KEYS` option.
+```
+regdiff example.reg /MERGE:sorted_example.reg /NO-EMPTY-KEYS
+```
 
-Example:
+## How to compare the current registry with a .REG file
 
-    regdiff.exe example.reg /merge sorted_example.reg /no-empty-keys
-    
-## How to compare the current registry settings with a given .REG file
+Use `/REGISTRY` to compare a .REG file against the live registry:
 
-You can use `regdiff.exe` to compare the current registry with a given .REG file using the `/registry` option.
+```
+regdiff hklm_software.reg /REGISTRY
+```
 
-Example:
+The difference between `HKEY_*` syntax and `/REGISTRY`:
 
-    regdiff.exe hklm_software.reg /registry
-
-The difference between the HKEY_LOCAL_MACHINE-syntax and the `/registry` parameter:
-
-- The `/registry` parameter checks all registry keys that are mentioned in the .REG file.
-- The `HKEY_LOCAL_MACHINE`-syntax syntax checks all registry keys that exist under the given registry key.
-
-Example: say, you have a registry that has the following keys:
-
-    HKEY_LOCAL_MACHINE\Software\foo
-    HKEY_LOCAL_MACHINE\Software\foo\test\one
-    HKEY_LOCAL_MACHINE\Software\foo\test\two
-    HKEY_LOCAL_MACHINE\Software\foo\hidden
-
-You want to compare this registry with a .REG file that contains
-
-    HKEY_LOCAL_MACHINE\Software\foo\test
-
-Here, using `/r` will not find `foo\hidden`, whereas `HKEY_LOCAL_MACHINE\Software\foo` will do so.
+- `/REGISTRY` checks only keys mentioned in the .REG file
+- `HKEY_*` syntax checks all keys under the specified path
 
 ## How to compare renamed keys
 
-Sometimes, you have two very similar keys that you want to compare. For example, in my other live I am maintaining a product with a key like this:
+Use `/ALIAS` to compare keys with different names:
 
-    HKEY_LOCAL_MACHINE\Software\MyProductName
-
-Sometimes, I have multiple copies of the softare installed on my machine, with names like this
-
-    HKEY_LOCAL_MACHINE\Software\MyProductName.Version1
-    HKEY_LOCAL_MACHINE\Software\MyProductName.Version2
-    HKEY_LOCAL_MACHINE\Software\MyProductName.Version3
-
-Starting with regdiff version 4.2, you can rename two such keys by using the `/alias` option, like this:
-
-    regdiff.exe  HKEY_LOCAL_MACHINE\Software\MyProductName.Version1 HKEY_LOCAL_MACHINE\Software\MyProductName.Version2 /ALIAS MyProductName.Version1=MyProductName.Version2
-
-This will cause the DIFF logic to ignore the key name and just compare anything below that key.
+```
+regdiff HKEY_LOCAL_MACHINE\Software\MyProduct.v1 HKEY_LOCAL_MACHINE\Software\MyProduct.v2 /ALIAS:MyProduct.v1=MyProduct.v2
+```
 
 ## The .REG file format
 
-The default file format is the unicode format introduced with Windows 2000. Its header reads Windows Registry Editor Version 5.00. You can also use the ANSI format REGEDIT4 used in earlier versions of Windows NT 4 by using the `/4` option.
+The default output format is Unicode (Windows Registry Editor Version 5.00). Use `/4` for the ANSI format (REGEDIT4):
 
-Example: Export the registry in REGEDIT4 format:
+```
+regdiff HKEY_LOCAL_MACHINE\SOFTWARE /4 /MERGE:hklm_software.reg
+```
 
-    regdiff.exe HKEY_LOCAL_MACHINE\SOFTWARE /4 /merge hklm_software.reg
+## Writing to the registry
 
-Note: The `/4` option can be combined with any of the above options.
+Use `/WRITE` to apply a .REG file to the registry:
 
-## Writing back the registry
+```
+regdiff settings.reg /WRITE
+```
 
-Given a (single) .REG file, you can use the `/WRITE` option to write back the contents to the registry
+The .REG file can contain:
 
-Example:
+- Comments starting with `#` or `;` (when `/COMMENTS` is specified)
+- Variables using `$$VARIABLE$$` syntax
 
-    regdiff.exe settings.reg /WRITE
+Example with variables:
 
-The .REG file can contain comments starting with either '#' or ';'
+```
+[HKEY_LOCAL_MACHINE\Software\MySuperCompany\Product\$$VERSION$$]
+"SomeOption"="$$OPTIONVALUE$$"
+"SomeInt"=dword:$$NUMBER$$
+"$$VARIABLENAME$$"="Something else"
+```
 
-The .REG file can contain variables in the following syntax
+Variables can be defined via:
 
-    $$VARIABLE$$
+- Environment variables
+- XML parameter files
+- INI parameter files
 
-For example, the following lines are valid:
+### XML parameter file format
 
-    [HKEY_LOCAL_MACHINE\Software\MySuperCompany\Product\$$VERSION$$]
-    "SomeOption"="$$OPTIONVALUE$$"
-    "SomeInt"=dword:$$NUMBER$$
-    "$$VARIABLENAME$$"="Something else"
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<values>
+  <value name="VERSION">4.0</value>
+  <value name="CONFIGURATION">blub</value>
+  <value name="OPTIONVALUE">blabla</value>
+</values>
+```
 
-The following lines are not valid:
+### INI parameter file format
 
-    ; missing $$ at the end
-    [HKEY_LOCAL_MACHINE\Software\MySuperCompany\Product\$$VERSION]
-    
-    ; string option is not enclosed in quotation marks
-    "SomeOption"=$$OPTIONVALUE$$
-    
-    ; integer option doesn't support digit-level replacement
-    "SomeInt"=dword:005$$NUMBER$$
+```ini
+; comments are allowed
+# this style too
 
-If you are using this variable replacement, then you must use specify them. There are three ways of doing to:
+[SectionHeadersAreIgnored]
 
-- By setting environment variables. For example, the code above would work if you had the environment variables VERSION and OPTIONVALUE defined.
-- By using an .XML file (see below)
-- By using a .INI file
+VERSION = 4.0
+CONFIGURATION = Some text here
+OPTIONVALUE = Some more text there
+NUMBER = 0x1860 # inline comment
+```
 
-Example scenario: you're writing an installer, and you have a ton of registry parameters, most of which are fixed (so .REG is suitable), but some of which aren't (for example, the installation path).
+## Security considerations
 
-### Defining replacement variables in .XML files
-
-Example:
-
-    <?xml version="1.0" encoding="utf-8"?>
-    <values>
-      <value name="VERSION">4.0</value>
-      <value name="CONFIGURATION">blub</value>
-      <value name="OPTIONVALUE">blabla</value>
-    </values>
-
-### Defining replacement variables in .INI files
-
-Example:
-
-    ; please ignore this comment
-    # ignore this as well
-    
-    [Ignored]
-    
-    VERSION = 4.0
-    CONFIGURATION = Some text here
-    OPTIONVALUE = Some more text there
-    NUMBER = 0x1860 # here is a comment
-
-Note that in the example above, section headers are ignored.
-
-## Playing with fire
-
-When you write back the registry using `/WRITE`, the default option is to not specify any security attributes, so the default security attributes are going to be used instead. If you specify the `/ALLACCESS` option, then a very fine "grant full control to everyone" attribute is going to be set - on everything you're writing. Some people will argue this is a security risk, so viewer discretion is advised.
-
-## Using the XML format
-
-And finally, version 4.0 allows you to export the registry in .XML format using the `/XML` switch, or by specifying a filename that ends in .XML.
-
-## Handling comments
-
-By default, you cannot pass comments in .REG files; if you specify the `/COMMENTS` parameter, you can use both ';' and '#' comments.
+With `/WRITE`, default security attributes are used. The `/ALLACCESS` option grants full control to everyone - use with caution.
 
 ## Distinguishing 32-bit/64-bit registry
 
-If you are running a 32-bit operating system, you only have a 32-bit registry. If you are running a 64-bit operating system:
+On 64-bit Windows:
 
-- If your process is 32-bit (default), then you see the 32-bit registry by default. However, if you specify `/64`, you get the 64-bit registry instead.
-- If your process is 64-bit, then you see the 64-bit registry by default. However, if you specify `/32`, you get the 32-bit registry instead.
+- `/32` - Access 32-bit registry view (WOW6432Node)
+- `/64` - Access 64-bit registry view
 
 ## Options overview
 
-You can use the `/?` option to get a list of all command line parameters.
+```
+REGDIFF - Version 5.0.0
+Freeware written by Gerson Kurz (http://p-nand-q.com) [windows/amd64]
 
-    ...\regdiff\bin\Release>regdiff /?
-    REGDIFF - Version 4.5
-    Freeware written by Gerson Kurz (http://p-nand-q.com) [32-bit process on 64-bit OS]
-    
-    USAGE: REGDIFF.EXE [OPTIONS] FILE {FILE}.
-    OPTIONS:
-            /MERGE: create merged output file
-             /DIFF: create diff output file
-         /REGISTRY: compare with the current registry value on your local machine
-                /4: use .REG format 4 (non-unicode)
-            /QUIET: don't show diff on console
-              /XML: use .XML format
-           /NOCASE: ignore case (default: case-sensitive)
-            /WRITE: write keys/values to registry
-         /COMMENTS: support semicolon and hashtag comments in .REG files
-        /ALLACCESS: grant all access to everyone (when using the /write option)
-           /PARAMS: read value params from file (when using the /write option)
-            /ALIAS: alias FOO=BAR
-    /NO-EMPTY-KEYS: don't create empty keys
-               /64: use 64-bit registry (default for this process: 32-bit)
-       FILE {FILE}: one or more .REG files
-       
- 
+Usage: regdiff [OPTIONS] FILE {FILE}
+
+OPTIONS:
+        /MERGE:<file>   create merged output file
+         /DIFF:<file>   create diff output file
+     /REGISTRY          compare with the current registry
+            /4          use .REG format 4 (non-unicode)
+        /QUIET          don't show diff on console
+      /COMMENTS         support semicolon and hashtag comments
+        /WRITE          write keys/values to registry
+    /ALLACCESS          grant all access to everyone (with /WRITE)
+ /PARAMS:<file>         read value params from file (with /WRITE)
+  /ALIAS:FOO=BAR        alias key names for comparison
+/NO-EMPTY-KEYS          don't create empty keys
+           /32          use 32-bit registry view
+           /64          use 64-bit registry view
+```
+
+## Related Projects
+
+- [go-regis3](https://github.com/gersonkurz/go-regis3) - The underlying Go library for .REG file parsing
+- [regdiff (C#)](https://github.com/gersonkurz/regdiff/tree/master) - The original .NET implementation (version 4.x, on master branch)
+- [pnq](https://github.com/gersonkurz/pnq) - C++ header-only library including `pnq::regis3`
+
+## License
+
+MIT License - see LICENSE file for details.

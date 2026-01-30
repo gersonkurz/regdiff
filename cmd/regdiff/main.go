@@ -4,12 +4,16 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/gersonkurz/go-regdiff/diff"
 	"github.com/gersonkurz/go-regdiff/internal/registry"
 	"github.com/gersonkurz/go-regis3"
 )
+
+// Version is set via ldflags at build time
+var Version = "5.0.0"
 
 type cliArgs struct {
 	mergeFile   string
@@ -326,7 +330,9 @@ func (i *aliasFlags) Set(value string) error {
 }
 
 func printUsage() {
-	fmt.Println("regdiff")
+	fmt.Printf("REGDIFF - Version %s\n", Version)
+	fmt.Printf("Freeware written by Gerson Kurz (http://p-nand-q.com) [%s/%s]\n", runtime.GOOS, runtime.GOARCH)
+	fmt.Println()
 	fmt.Println("Usage: regdiff [OPTIONS] FILE {FILE}")
 	fmt.Println()
 	flag.PrintDefaults()
