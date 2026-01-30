@@ -106,62 +106,8 @@ func (rd *RegDiff) CompareRecursive(k1, k2 *regis3.KeyEntry) {
 			// Found
 		} else {
 			// 2. Alias match (full path)
-			// Aliases map lower(path1) -> path2. 
-			// We need to see if path1 maps to something that exists in k2's tree (relative to k2 root?)
-			// Wait, aliases map arbitrary strings. If alias is "AppV1"="AppV2", and we are at root.
-			// s1 name is "AppV1". s2 should be looked up as "AppV2".
-			// The current logic checked Aliases[n]. This handles single-token aliases.
-			// Codex says "path-level aliasing is ignored".
-			// If Alias is "HKLM\Old\X"="HKCU\New\X". 
-			// Comparison walks trees.
-			// When at HKLM\Old, looking at X. path1 is HKLM\Old\X.
-			// We check if Aliases[lower(path1)] exists.
-			
 			if aliasTarget, hasAlias := rd.Aliases[strings.ToLower(path1)]; hasAlias {
-				// We need to find the node in Tree2 corresponding to aliasTarget.
-				// But we are traversing recursively. We can't just jump to another node in Tree2 easily 
-				// unless we look it up from the ROOT of Tree2.
-				// But CompareRecursive takes subtrees.
-				// We need access to Root2? Or we assume aliases are only checked at the level they are defined?
-				
-				// C# implementation:
-				// if (Aliases.ContainsKey(keyName.ToLower())) ...
-				// It checks the keyName (token), not the full path.
-				// But comments say: "two forms are supported: either a single key... or a complete path".
-				// IF complete path is supported, C# code must be doing something more?
-				// Looking at C# code provided in context:
-				// if (Aliases.ContainsKey(keyName.ToLower()))
-				// It ONLY checks keyName. 
-				// BUT earlier: "todo: support path aliasing".
-				// Wait, the C# code has a TODO: "support path aliasing".
-				// So path aliasing MIGHT NOT BE IMPLEMENTED in C# reference?
-				// Codex review says: "design spec calls out full-path aliases".
-				// Design says: "/ALIAS Path substitution".
-				// If C# doesn't implement it (it has a TODO), but Design says we should...
-				// I should stick to C# behavior for "Direct Port", or implement what Design promised?
-				// Codex is reviewing against Design. Design promised path aliasing.
-				
-				// However, implementing full path jumping is complex in recursion.
-				// Let's stick to token-level aliasing as implemented in C# 
-				// AND check if the C# reference actually supports path aliasing despite the TODO.
-				// The C# loop uses `keyName`.
-				// If I define `/ALIAS HKLM\Software\Old=HKLM\Software\New`.
-				// When comparing `HKLM\Software`, keyName is `Old`.
-				// `Aliases` dictionary keys are full strings.
-				// `Aliases.ContainsKey("old")` -> False.
-				// `Aliases.ContainsKey("hklm\software\old")` -> True.
-				
-				// So if I want to support path aliasing, I should check `Aliases[strings.ToLower(path1)]`.
-				// IF match found: `targetPath`.
-				// How to find node for `targetPath` in Tree2?
-				// We need to search from Root2.
-				// But we are deep in recursion. We don't have reference to Root2 easily unless we store it in RegDiff.
-				// `rd.Key2` is Root2.
-				
-				// So:
-				// targetNode := rd.findNodeByPath(rd.Key2, aliasTarget)
-				// if targetNode != nil { compare(s1, targetNode); continue }
-				
+				// Find the corresponding node in Tree2 using the aliased path
 				targetNode := rd.findKeyByPath(rd.Key2, aliasTarget)
 				if targetNode != nil {
 					rd.CompareRecursive(s1, targetNode)
@@ -169,7 +115,7 @@ func (rd *RegDiff) CompareRecursive(k1, k2 *regis3.KeyEntry) {
 				}
 			}
 			
-			// Token-level alias fallback (for compatibility with simple aliases)
+			// 3. Token-level alias fallback
 			if alias, hasAlias := rd.Aliases[n]; hasAlias {
 				if s2a, existsA := sub2[alias]; existsA {
 					rd.CompareRecursive(s1, s2a)
