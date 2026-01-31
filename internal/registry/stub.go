@@ -34,3 +34,7 @@ func LoadLiveRegistry(liveRoot *regis3.KeyEntry, fileKey *regis3.KeyEntry, acces
 func WriteToRegistry(key *regis3.KeyEntry, access uint32) error {
 	return ErrNotSupported
 }
+
+func ReadRegistryPath(path string, access uint32) (*regis3.KeyEntry, error) {
+	return nil, ErrNotSupported
+}

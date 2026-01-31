@@ -10,6 +10,21 @@ import (
 	"github.com/gersonkurz/go-regis3"
 )
 
+// MergeEnvironmentVariables adds all OS environment variables to the params map.
+// Existing params take precedence over environment variables.
+func MergeEnvironmentVariables(params map[string]string) {
+	for _, env := range os.Environ() {
+		parts := strings.SplitN(env, "=", 2)
+		if len(parts) == 2 {
+			key := strings.ToUpper(parts[0])
+			// Don't override existing params
+			if _, exists := params[key]; !exists {
+				params[key] = parts[1]
+			}
+		}
+	}
+}
+
 // LoadParams reads a params file (INI or XML) and returns a map of substitutions.
 // It detects format by file extension (.xml).
 func LoadParams(filename string) (map[string]string, error) {

@@ -23,8 +23,8 @@ func TestDiff(t *testing.T) {
 "ChangeMe"="New"
 "NewValue"="Hello"
 `
-	rootA, _ := regis3.Parse(inputA, 0)
-	rootB, _ := regis3.Parse(inputB, 0)
+	rootA, _ := regis3.Parse(inputA, nil)
+	rootB, _ := regis3.Parse(inputB, nil)
 	
 	rd := NewRegDiff(rootA, "File1", rootB, "File2", nil)
 	diff := rd.CreateDiffKeyEntry()
@@ -69,8 +69,8 @@ func TestMerge(t *testing.T) {
 "Conflict"="B"
 "New"="B"
 `
-	rootA, _ := regis3.Parse(inputA, 0)
-	rootB, _ := regis3.Parse(inputB, 0)
+	rootA, _ := regis3.Parse(inputA, nil)
+	rootB, _ := regis3.Parse(inputB, nil)
 	
 	rd := NewRegDiff(rootA, "File1", rootB, "File2", nil)
 	result := rd.CreateMergeKeyEntry()
@@ -104,8 +104,8 @@ func TestAliases(t *testing.T) {
 [HKEY_CURRENT_USER\Software\AppV2]
 "Config"="Old"
 `
-	rootA, _ := regis3.Parse(inputA, 0)
-	rootB, _ := regis3.Parse(inputB, 0)
+	rootA, _ := regis3.Parse(inputA, nil)
+	rootB, _ := regis3.Parse(inputB, nil)
 	
 	aliases := map[string]string{"AppV1": "AppV2"}
 	rd := NewRegDiff(rootA, "F1", rootB, "F2", aliases)
@@ -127,8 +127,8 @@ func TestPathAliases(t *testing.T) {
 [HKEY_CURRENT_USER\Software\NewPath\Sub]
 "Val"="Same"
 `
-	rootA, _ := regis3.Parse(inputA, 0)
-	rootB, _ := regis3.Parse(inputB, 0)
+	rootA, _ := regis3.Parse(inputA, nil)
+	rootB, _ := regis3.Parse(inputB, nil)
 	
 	// Alias full path
 	aliases := map[string]string{

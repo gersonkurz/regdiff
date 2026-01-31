@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"runtime"
 	"strings"
 
 	"github.com/gersonkurz/go-regdiff/diff"
@@ -45,17 +44,16 @@ func main() {
 	filenames := flag.Args()
 	files := make([]*regis3.KeyEntry, 0, len(filenames))
 
-	// Import Options
-	importOpts := regis3.ImportOptionsNone
-	if args.comments {
-		importOpts |= regis3.AllowHashtagComments | regis3.AllowSemicolonComments
+	// Parse Options
+	parseOpts := &regis3.ParseOptions{
+		AllowHashtagComments:      args.comments,
+		AllowSemicolonComments:    args.comments,
+		AllowVariableSubstitution: true,
 	}
-	importOpts |= regis3.AllowVariableNamesForNonStringVariables
-	
+
 	// Export Options
-	exportOpts := regis3.ExportOptionsNone
-	if args.noEmptyKeys {
-		exportOpts |= regis3.NoEmptyKeys
+	exportOpts := regis3.ExportOptions{
+		NoEmptyKeys: args.noEmptyKeys,
 	}
 
 	// Parse Aliases
@@ -81,25 +79,55 @@ func main() {
 		}
 	}
 
-	// Load Files
+	// When writing to registry, merge environment variables into params
+	if args.write {
+		if params == nil {
+			params = make(map[string]string)
+		}
+		diff.MergeEnvironmentVariables(params)
+	}
+
+	// Access flags for registry operations
+	accessRead := uint32(registry.AccessRead)
+	if args.view32 {
+		accessRead |= registry.View32
+	}
+	if args.view64 {
+		accessRead |= registry.View64
+	}
+
+	// Load Files or Registry Keys
 	for _, filename := range filenames {
 		if !args.quiet {
 			fmt.Printf("Reading %s...\n", filename)
 		}
-		
-		if strings.HasSuffix(strings.ToLower(filename), ".xml") {
-			fmt.Printf("XML format not yet supported: %s\n", filename)
-			os.Exit(10)
-		}
 
-		key, err := regis3.ParseFile(filename, importOpts)
-		if err != nil {
-			fmt.Printf("Error reading %s: %v\n", filename, err)
-			os.Exit(10)
-		}
+		var key *regis3.KeyEntry
+		var err error
 
-		if len(params) > 0 {
-			diff.ApplyParams(key, params)
+		if isRegistryPath(filename) {
+			// Read from live registry
+			key, err = registry.ReadRegistryPath(filename, accessRead)
+			if err != nil {
+				fmt.Printf("Error reading registry %s: %v\n", filename, err)
+				os.Exit(10)
+			}
+		} else {
+			// Read from file
+			if strings.HasSuffix(strings.ToLower(filename), ".xml") {
+				fmt.Printf("XML format not yet supported: %s\n", filename)
+				os.Exit(10)
+			}
+
+			key, err = regis3.ParseFile(filename, parseOpts)
+			if err != nil {
+				fmt.Printf("Error reading %s: %v\n", filename, err)
+				os.Exit(10)
+			}
+
+			if len(params) > 0 {
+				diff.ApplyParams(key, params)
+			}
 		}
 
 		files = append(files, key)
@@ -111,21 +139,16 @@ func main() {
 			fmt.Println("Error: /REGISTRY requires exactly one input file.")
 			os.Exit(10)
 		}
-		
+
 		fileKey := files[0]
 		liveRoot := regis3.NewKeyEntry(nil, "")
-		
-		// Access flags
-		access := uint32(registry.AccessRead)
-		if args.view32 { access |= registry.View32 }
-		if args.view64 { access |= registry.View64 }
-		
-		err := registry.LoadLiveRegistry(liveRoot, fileKey, access)
+
+		err := registry.LoadLiveRegistry(liveRoot, fileKey, accessRead)
 		if err != nil {
 			fmt.Printf("Error reading registry: %v\n", err)
 			os.Exit(10)
 		}
-		
+
 		files = append(files, liveRoot)
 		filenames = append(filenames, "REGISTRY")
 	}
@@ -258,82 +281,169 @@ func writeOutput(filename string, key *regis3.KeyEntry, format4 bool, opts regis
 }
 
 func parseArgs() *cliArgs {
-	newArgs := make([]string, 0, len(os.Args))
-	newArgs = append(newArgs, os.Args[0])
+	args := &cliArgs{}
+	positionalArgs := []string{}
 
-	for _, arg := range os.Args[1:] {
-		if strings.HasPrefix(arg, "/") {
-			if strings.Contains(arg, ":") {
-				parts := strings.SplitN(arg, ":", 2)
-				key := "-" + parts[0][1:]
-				val := parts[1]
-				newArgs = append(newArgs, key+"="+val)
+	// expectValue is set when we need the next arg as a parameter value
+	var expectValue *string
+
+	for i := 1; i < len(os.Args); i++ {
+		arg := os.Args[i]
+
+		// If we're expecting a value for a previous option
+		if expectValue != nil {
+			*expectValue = arg
+			expectValue = nil
+			continue
+		}
+
+		if strings.HasPrefix(arg, "/") || strings.HasPrefix(arg, "-") {
+			// Normalize: remove leading / or - or --
+			arg = strings.TrimPrefix(arg, "/")
+			arg = strings.TrimPrefix(arg, "--")
+			arg = strings.TrimPrefix(arg, "-")
+
+			// Check for inline value (FLAG:VALUE or FLAG=VALUE)
+			var key, val string
+			var hasVal bool
+			if idx := strings.IndexAny(arg, ":="); idx != -1 {
+				key = strings.ToUpper(arg[:idx])
+				val = arg[idx+1:]
+				hasVal = true
 			} else {
-				newArgs = append(newArgs, "-" + arg[1:])
+				key = strings.ToUpper(arg)
+				hasVal = false
+			}
+
+			switch key {
+			case "MERGE":
+				if hasVal {
+					args.mergeFile = val
+				} else {
+					expectValue = &args.mergeFile
+				}
+			case "DIFF":
+				if hasVal {
+					args.diffFile = val
+				} else {
+					expectValue = &args.diffFile
+				}
+			case "PARAMS":
+				if hasVal {
+					args.paramsFile = val
+				} else {
+					expectValue = &args.paramsFile
+				}
+			case "ALIAS":
+				if hasVal {
+					args.aliases = append(args.aliases, val)
+				} else {
+					// Need to collect next arg
+					i++
+					if i < len(os.Args) {
+						args.aliases = append(args.aliases, os.Args[i])
+					}
+				}
+			case "QUIET":
+				args.quiet = true
+			case "NO-EMPTY-KEYS":
+				args.noEmptyKeys = true
+			case "4":
+				args.format4 = true
+			case "COMMENTS":
+				args.comments = true
+			case "NOCASE":
+				args.nocase = true
+			case "REGISTRY":
+				args.useRegistry = true
+			case "WRITE":
+				args.write = true
+			case "ALLACCESS":
+				args.allAccess = true
+			case "32":
+				args.view32 = true
+			case "64":
+				args.view64 = true
+			case "XML":
+				// Ignored, not supported
+			case "?", "H", "HELP":
+				printUsage()
+				os.Exit(0)
+			default:
+				fmt.Printf("Error, argument '%s' is invalid.\n", key)
+				os.Exit(10)
 			}
 		} else {
-			newArgs = append(newArgs, arg)
+			positionalArgs = append(positionalArgs, arg)
 		}
 	}
 
-	os.Args = newArgs
-
-	args := &cliArgs{}
-	var aliases aliasFlags
-
-	flag.StringVar(&args.mergeFile, "merge", "", "create merged output file")
-	flag.StringVar(&args.mergeFile, "MERGE", "", "create merged output file")
-	flag.StringVar(&args.diffFile, "diff", "", "create diff output file")
-	flag.StringVar(&args.diffFile, "DIFF", "", "create diff output file")
-	flag.BoolVar(&args.quiet, "quiet", false, "don't show diff on console")
-	flag.BoolVar(&args.quiet, "QUIET", false, "don't show diff on console")
-	flag.BoolVar(&args.noEmptyKeys, "no-empty-keys", false, "don't create empty keys")
-	flag.BoolVar(&args.noEmptyKeys, "NO-EMPTY-KEYS", false, "don't create empty keys")
-	flag.BoolVar(&args.format4, "4", false, "use .REG format 4 (non-unicode)")
-	flag.BoolVar(&args.comments, "comments", false, "allow line comments")
-	flag.BoolVar(&args.comments, "COMMENTS", false, "allow line comments")
-	flag.BoolVar(&args.nocase, "nocase", false, "ignore case (default)")
-	flag.BoolVar(&args.nocase, "NOCASE", false, "ignore case (default)")
-	flag.Var(&aliases, "alias", "alias FOO=BAR")
-	flag.Var(&aliases, "ALIAS", "alias FOO=BAR")
-	flag.StringVar(&args.paramsFile, "params", "", "params file (.ini or .xml)")
-	flag.StringVar(&args.paramsFile, "PARAMS", "", "params file (.ini or .xml)")
-
-	// Registry Flags
-	flag.BoolVar(&args.useRegistry, "registry", false, "compare with registry")
-	flag.BoolVar(&args.useRegistry, "REGISTRY", false, "compare with registry")
-	flag.BoolVar(&args.write, "write", false, "write to registry")
-	flag.BoolVar(&args.write, "WRITE", false, "write to registry")
-	flag.BoolVar(&args.allAccess, "allaccess", false, "grant all access (requires /WRITE)")
-	flag.BoolVar(&args.allAccess, "ALLACCESS", false, "grant all access (requires /WRITE)")
-	flag.BoolVar(&args.view32, "32", false, "use 32-bit registry view")
-	flag.BoolVar(&args.view64, "64", false, "use 64-bit registry view")
-
-	var dummyBool bool
-	flag.BoolVar(&dummyBool, "xml", false, "use xml format (not supported)")
-	flag.BoolVar(&dummyBool, "XML", false, "use xml format (not supported)")
-	
+	// Replace os.Args for flag.Args() compatibility
+	os.Args = append([]string{os.Args[0]}, positionalArgs...)
 	flag.Parse()
-	args.aliases = aliases
+
 	return args
 }
 
-type aliasFlags []string
-
-func (i *aliasFlags) String() string {
-	return fmt.Sprint(*i)
+// isRegistryPath checks if the path looks like a registry path (HKEY_* or short forms)
+func isRegistryPath(path string) bool {
+	upper := strings.ToUpper(path)
+	prefixes := []string{
+		"HKEY_CLASSES_ROOT", "HKEY_CURRENT_USER", "HKEY_LOCAL_MACHINE",
+		"HKEY_USERS", "HKEY_CURRENT_CONFIG", "HKEY_PERFORMANCE_DATA",
+		"HKCR", "HKCU", "HKLM", "HKU", "HKCC", "HKPD",
+	}
+	for _, prefix := range prefixes {
+		if upper == prefix || strings.HasPrefix(upper, prefix+"\\") {
+			return true
+		}
+	}
+	return false
 }
 
-func (i *aliasFlags) Set(value string) error {
-	*i = append(*i, value)
-	return nil
+func getProcessType() string {
+	if regis3.Is64BitProcess() {
+		return "64-bit"
+	}
+	if regis3.Is64BitOperatingSystem() {
+		return "32-bit process on 64-bit OS"
+	}
+	return "32-bit"
 }
 
 func printUsage() {
 	fmt.Printf("REGDIFF - Version %s\n", Version)
-	fmt.Printf("Freeware written by Gerson Kurz (http://p-nand-q.com) [%s/%s]\n", runtime.GOOS, runtime.GOARCH)
+	fmt.Printf("Freeware written by Gerson Kurz (http://p-nand-q.com) [%s]\n", getProcessType())
 	fmt.Println()
-	fmt.Println("Usage: regdiff [OPTIONS] FILE {FILE}")
+	fmt.Println("Usage: regdiff [OPTIONS] FILE|HKEY_* {FILE|HKEY_*}")
 	fmt.Println()
-	flag.PrintDefaults()
+	fmt.Println("Options:")
+	fmt.Println("  /MERGE:<file>      Create merged output file")
+	fmt.Println("  /DIFF:<file>       Create diff output file")
+	fmt.Println("  /QUIET             Don't show diff on console")
+	fmt.Println("  /NO-EMPTY-KEYS     Don't create empty keys in output")
+	fmt.Println("  /4                 Use REGEDIT4 format (ANSI, non-unicode)")
+	fmt.Println("  /COMMENTS          Allow # and ; line comments in input")
+	fmt.Println("  /ALIAS:FOO=BAR     Alias key names for comparison (repeatable)")
+	fmt.Println("  /PARAMS:<file>     Parameter file for $$VAR$$ substitution (.ini or .xml)")
+	fmt.Println("  /REGISTRY          Compare input file against live registry")
+	fmt.Println("  /WRITE             Write result to registry (Windows only)")
+	fmt.Println("  /ALLACCESS         Grant all access when writing (use with /WRITE)")
+
+	// Show registry view option based on process type
+	if regis3.Is64BitProcess() {
+		fmt.Println("  /32                Use 32-bit registry view (default: 64-bit)")
+	} else if regis3.Is64BitOperatingSystem() {
+		fmt.Println("  /64                Use 64-bit registry view (default: 32-bit)")
+	}
+	// On 32-bit OS, no view switching is available
+
+	fmt.Println("  /? or /HELP        Show this help")
+	fmt.Println()
+	fmt.Println("Examples:")
+	fmt.Println("  regdiff file1.reg file2.reg                    Compare two .REG files")
+	fmt.Println("  regdiff file1.reg file2.reg /DIFF:changes.reg  Create diff file")
+	fmt.Println("  regdiff HKEY_CURRENT_USER\\Software /MERGE:out.reg  Export registry key")
+	fmt.Println("  regdiff settings.reg /REGISTRY                 Compare file with registry")
+	fmt.Println("  regdiff settings.reg /WRITE                    Apply .REG file to registry")
 }

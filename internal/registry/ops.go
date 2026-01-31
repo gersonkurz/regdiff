@@ -96,11 +96,138 @@ func WriteToRegistry(key *regis3.KeyEntry, access uint32) error {
 
 func MapHive(name string) (registry.Key, error) {
 	switch strings.ToUpper(name) {
-	case "HKEY_CLASSES_ROOT", "HKCR": return registry.CLASSES_ROOT, nil
-	case "HKEY_CURRENT_USER", "HKCU": return registry.CURRENT_USER, nil
-	case "HKEY_LOCAL_MACHINE", "HKLM": return registry.LOCAL_MACHINE, nil
-	case "HKEY_USERS", "HKU": return registry.USERS, nil
-	case "HKEY_CURRENT_CONFIG", "HKCC": return registry.CURRENT_CONFIG, nil
+	case "HKEY_CLASSES_ROOT", "HKCR":
+		return registry.CLASSES_ROOT, nil
+	case "HKEY_CURRENT_USER", "HKCU":
+		return registry.CURRENT_USER, nil
+	case "HKEY_LOCAL_MACHINE", "HKLM":
+		return registry.LOCAL_MACHINE, nil
+	case "HKEY_USERS", "HKU":
+		return registry.USERS, nil
+	case "HKEY_CURRENT_CONFIG", "HKCC":
+		return registry.CURRENT_CONFIG, nil
 	}
 	return 0, fmt.Errorf("unknown hive: %s", name)
+}
+
+// ReadRegistryPath reads a registry path like "HKEY_LOCAL_MACHINE\Software\Microsoft"
+// and returns a KeyEntry tree with all keys and values under that path.
+func ReadRegistryPath(path string, access uint32) (*regis3.KeyEntry, error) {
+	// Parse the path to extract hive and relative path
+	hiveName, relPath := splitRegistryPath(path)
+	if hiveName == "" {
+		return nil, fmt.Errorf("invalid registry path: %s", path)
+	}
+
+	rootKey, err := MapHive(hiveName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create result tree with hive as root
+	result := regis3.NewKeyEntry(nil, hiveName)
+
+	if relPath == "" {
+		// Read entire hive (just the root level - this could be huge)
+		if err := readRegistryRecursive(rootKey, "", result, access); err != nil {
+			return nil, err
+		}
+	} else {
+		// Create path structure and read from the specified subkey
+		parent := result
+		parts := strings.Split(relPath, "\\")
+		for i, part := range parts {
+			child := regis3.NewKeyEntry(parent, part)
+			parent.SubKeys()[strings.ToLower(part)] = child
+			child.SetParent(parent)
+
+			if i == len(parts)-1 {
+				// Last part - read registry content here
+				if err := readRegistryRecursive(rootKey, relPath, child, access); err != nil {
+					return nil, err
+				}
+			}
+			parent = child
+		}
+	}
+
+	// Wrap in anonymous root to match expected structure
+	root := regis3.NewKeyEntry(nil, "")
+	root.SubKeys()[strings.ToLower(hiveName)] = result
+	result.SetParent(root)
+
+	return root, nil
+}
+
+func splitRegistryPath(path string) (hive, relPath string) {
+	knownHives := []string{
+		"HKEY_CLASSES_ROOT", "HKEY_CURRENT_USER", "HKEY_LOCAL_MACHINE",
+		"HKEY_USERS", "HKEY_CURRENT_CONFIG", "HKEY_PERFORMANCE_DATA",
+		"HKCR", "HKCU", "HKLM", "HKU", "HKCC", "HKPD",
+	}
+
+	upper := strings.ToUpper(path)
+	for _, h := range knownHives {
+		if upper == h {
+			return h, ""
+		}
+		if strings.HasPrefix(upper, h+"\\") {
+			return path[:len(h)], path[len(h)+1:]
+		}
+	}
+	return "", ""
+}
+
+func readRegistryRecursive(rootKey registry.Key, relPath string, entry *regis3.KeyEntry, access uint32) error {
+	var k registry.Key
+	var err error
+
+	if relPath == "" {
+		k = rootKey
+	} else {
+		k, err = registry.OpenKey(rootKey, relPath, access|registry.READ)
+		if err != nil {
+			return fmt.Errorf("failed to open key %s: %w", relPath, err)
+		}
+		defer k.Close()
+	}
+
+	// Read values
+	valNames, err := k.ReadValueNames(0)
+	if err != nil {
+		return err
+	}
+
+	for _, name := range valNames {
+		valBytes, valType, err := queryValue(k, name)
+		if err != nil {
+			return fmt.Errorf("failed to read value %s: %w", name, err)
+		}
+		valEntry := entry.FindOrCreateValue(name)
+		valEntry.SetBinaryType(valType, valBytes)
+	}
+
+	// Read subkeys
+	subKeyNames, err := k.ReadSubKeyNames(0)
+	if err != nil {
+		return err
+	}
+
+	for _, subName := range subKeyNames {
+		subEntry := entry.FindOrCreateKey(subName)
+		subPath := subName
+		if relPath != "" {
+			subPath = relPath + "\\" + subName
+		}
+
+		if err := readRegistryRecursive(rootKey, subPath, subEntry, access); err != nil {
+			// Log but continue on access denied
+			if strings.Contains(err.Error(), "Access is denied") {
+				continue
+			}
+			return err
+		}
+	}
+
+	return nil
 }

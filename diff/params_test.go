@@ -17,7 +17,7 @@ func TestApplyParams(t *testing.T) {
 `
 	// Multi value decodes to "AB", "$$VAR$$"
 	
-	key, err := regis3.Parse(input, 0)
+	key, err := regis3.Parse(input, nil)
 	if err != nil {
 		t.Fatalf("Parse failed: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestApplyParamsEdgeCases(t *testing.T) {
 @="$$DEFAULT$$"
 "Escaped"=dword:$$VAR$$
 `
-	key, err := regis3.Parse(input, regis3.AllowVariableNamesForNonStringVariables)
+	key, err := regis3.Parse(input, &regis3.ParseOptions{AllowVariableSubstitution: true})
 	if err != nil {
 		t.Fatalf("Parse failed: %v", err)
 	}
