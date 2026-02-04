@@ -5,10 +5,13 @@ import (
 	"errors"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/gersonkurz/go-regis3"
 )
+
+var rePlaceholder = regexp.MustCompile(`(?i)\$\$(.*?)\$\$`)
 
 // MergeEnvironmentVariables adds all OS environment variables to the params map.
 // Existing params take precedence over environment variables.
@@ -129,23 +132,15 @@ func ApplyParams(key *regis3.KeyEntry, params map[string]string) {
 }
 
 func replaceString(s string, params map[string]string) string {
-	// Replacement of $$KEY$$ where KEY is case-insensitive (stored as uppercase)
-	for k, v := range params {
-		placeholder := "$$" + k + "$$"
-		if strings.Contains(strings.ToUpper(s), placeholder) {
-			s = replaceCaseInsensitive(s, placeholder, v)
-		}
+	if len(params) == 0 {
+		return s
 	}
-	return s
-}
-
-func replaceCaseInsensitive(source, placeholder, replacement string) string {
-	for {
-		i := strings.Index(strings.ToUpper(source), placeholder)
-		if i == -1 {
-			break
+	return rePlaceholder.ReplaceAllStringFunc(s, func(match string) string {
+		// Extract key between $$ and $$
+		key := strings.ToUpper(match[2 : len(match)-2])
+		if val, ok := params[key]; ok {
+			return val
 		}
-		source = source[:i] + replacement + source[i+len(placeholder):]
-	}
-	return source
+		return match
+	})
 }

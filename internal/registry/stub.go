@@ -10,11 +10,11 @@ import (
 type Key = uintptr
 
 const (
-	AccessRead      = 0
-	AccessWrite     = 0
-	AccessAll       = 0
-	View32          = 0
-	View64          = 0
+	AccessRead  = 0
+	AccessWrite = 0
+	AccessAll   = 0
+	View32      = 0
+	View64      = 0
 )
 
 var ErrNotSupported = errors.New("registry operations only supported on windows")

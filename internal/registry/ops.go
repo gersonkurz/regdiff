@@ -13,11 +13,11 @@ import (
 
 // Constants for Access and View
 const (
-	AccessRead      = registry.READ
-	AccessWrite     = registry.WRITE
-	AccessAll       = registry.ALL_ACCESS
-	View32          = windows.KEY_WOW64_32KEY
-	View64          = windows.KEY_WOW64_64KEY
+	AccessRead  = registry.READ
+	AccessWrite = registry.WRITE
+	AccessAll   = registry.ALL_ACCESS
+	View32      = windows.KEY_WOW64_32KEY
+	View64      = windows.KEY_WOW64_64KEY
 )
 
 // LoadLiveRegistry populates liveRoot with keys found in fileKey structure.
@@ -27,9 +27,9 @@ func LoadLiveRegistry(liveRoot *regis3.KeyEntry, fileKey *regis3.KeyEntry, acces
 		if err != nil {
 			return err
 		}
-		
+
 		liveHive := liveRoot.FindOrCreateKey(hiveName)
-		
+
 		for subName, subKey := range hiveKey.SubKeys() {
 			if err := recursiveLoad(liveHive, subKey, rootH, subName, access); err != nil {
 				return err
@@ -40,6 +40,7 @@ func LoadLiveRegistry(liveRoot *regis3.KeyEntry, fileKey *regis3.KeyEntry, acces
 }
 
 func recursiveLoad(liveParent *regis3.KeyEntry, fileNode *regis3.KeyEntry, rootH registry.Key, relPath string, access uint32) error {
+	// Load keys with values, and also empty keys (no subkeys) to preserve existence checks.
 	if len(fileNode.Values()) > 0 || len(fileNode.SubKeys()) == 0 {
 		loadedKey, err := ParseRegistry(rootH, relPath, access)
 		if err != nil {
@@ -47,28 +48,28 @@ func recursiveLoad(liveParent *regis3.KeyEntry, fileNode *regis3.KeyEntry, rootH
 			if err == registry.ErrNotExist || strings.Contains(err.Error(), "The system cannot find the file specified") {
 				return nil
 			}
-			// Access Denied: Log and skip
 			if strings.Contains(err.Error(), "Access is denied") {
 				fmt.Printf("Warning: Access denied reading registry key %s\n", relPath)
 				return nil
 			}
-			
 			fmt.Printf("Warning: failed to read registry key %s: %v\n", relPath, err)
 			return nil
 		}
-		
-		parts := strings.Split(relPath, "\\")
-		parentPath := ""
-		if len(parts) > 1 {
-			parentPath = strings.Join(parts[:len(parts)-1], "\\")
+
+		// Merge values for this key into the correct path under liveParent.
+		destContainer := liveParent.FindOrCreateKey(relPath)
+		// Copy values and metadata from loadedKey to destContainer
+		for name, val := range loadedKey.Values() {
+			v := destContainer.FindOrCreateValue(name)
+			v.SetBinaryType(val.Kind(), val.Data())
 		}
-		
-		destContainer := liveParent.FindOrCreateKey(parentPath)
-		destContainer.SubKeys()[strings.ToLower(loadedKey.Name())] = loadedKey
-		loadedKey.SetParent(destContainer)
-		return nil
+		if def := loadedKey.DefaultValue(); def != nil {
+			v := destContainer.FindOrCreateValue("")
+			v.SetBinaryType(def.Kind(), def.Data())
+		}
 	}
 
+	// Always recurse into subkeys mentioned in the file, regardless of whether we loaded values
 	for subName, subKey := range fileNode.SubKeys() {
 		newPath := relPath + "\\" + subName
 		if err := recursiveLoad(liveParent, subKey, rootH, newPath, access); err != nil {
@@ -184,6 +185,7 @@ func readRegistryRecursive(rootKey registry.Key, relPath string, entry *regis3.K
 
 	if relPath == "" {
 		k = rootKey
+		// Note: rootKey is a predefined hive handle, we should NOT close it.
 	} else {
 		k, err = registry.OpenKey(rootKey, relPath, access|registry.READ)
 		if err != nil {

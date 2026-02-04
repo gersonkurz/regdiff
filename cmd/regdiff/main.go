@@ -12,6 +12,31 @@ import (
 	"github.com/gersonkurz/go-regis3"
 )
 
+// ANSI Color codes
+const (
+	colorReset  = "\033[0m"
+	colorRed    = "\033[31m"
+	colorGreen  = "\033[32m"
+	colorYellow = "\033[33m"
+	colorCyan   = "\033[36m"
+)
+
+func printError(format string, a ...interface{}) {
+	fmt.Fprintf(os.Stderr, colorRed+"ERROR: "+format+colorReset+"\n", a...)
+}
+
+func printWarning(format string, a ...interface{}) {
+	fmt.Fprintf(os.Stderr, colorYellow+"WARNING: "+format+colorReset+"\n", a...)
+}
+
+func printSuccess(format string, a ...interface{}) {
+	fmt.Printf(colorGreen+format+colorReset+"\n", a...)
+}
+
+func printInfo(format string, a ...interface{}) {
+	fmt.Printf(colorCyan+format+colorReset+"\n", a...)
+}
+
 // Version is set via ldflags at build time
 var Version = "5.0.0"
 
@@ -75,11 +100,10 @@ func main() {
 		var err error
 		params, err = diff.LoadParams(args.paramsFile)
 		if err != nil {
-			fmt.Printf("Error reading params file %s: %v\n", args.paramsFile, err)
+			printError("Reading params file %s: %v", args.paramsFile, err)
 			os.Exit(10)
 		}
 	}
-
 	// When writing to registry, merge environment variables into params
 	if args.write {
 		if params == nil {
@@ -100,7 +124,7 @@ func main() {
 	// Load Files or Registry Keys
 	for _, filename := range filenames {
 		if !args.quiet {
-			fmt.Printf("Reading %s...\n", filename)
+			printInfo("Reading %s...", filename)
 		}
 
 		var key *regis3.KeyEntry
@@ -110,22 +134,21 @@ func main() {
 			// Read from live registry
 			key, err = registry.ReadRegistryPath(filename, accessRead)
 			if err != nil {
-				fmt.Printf("Error reading registry %s: %v\n", filename, err)
+				printError("Reading registry %s: %v", filename, err)
 				os.Exit(10)
 			}
 		} else {
 			// Read from file
 			if strings.HasSuffix(strings.ToLower(filename), ".xml") {
-				fmt.Printf("XML format not yet supported: %s\n", filename)
+				printError("XML format not yet supported: %s", filename)
 				os.Exit(10)
 			}
 
 			key, err = regis3.ParseFile(filename, parseOpts)
 			if err != nil {
-				fmt.Printf("Error reading %s: %v\n", filename, err)
+				printError("Reading %s: %v", filename, err)
 				os.Exit(10)
 			}
-
 			if len(params) > 0 {
 				diff.ApplyParams(key, params)
 			}
@@ -137,7 +160,7 @@ func main() {
 	// If /REGISTRY is specified, we compare the first file against the live registry.
 	if args.useRegistry {
 		if len(files) != 1 {
-			fmt.Println("Error: /REGISTRY requires exactly one input file.")
+			printError("/REGISTRY requires exactly one input file.")
 			os.Exit(10)
 		}
 
@@ -146,7 +169,7 @@ func main() {
 
 		err := registry.LoadLiveRegistry(liveRoot, fileKey, accessRead)
 		if err != nil {
-			fmt.Printf("Error reading registry: %v\n", err)
+			printError("Reading registry: %v", err)
 			os.Exit(10)
 		}
 
@@ -162,7 +185,7 @@ func main() {
 	if len(files) == 1 {
 		if args.write {
 			if !args.quiet {
-				fmt.Println("Writing to registry...")
+				printInfo("Writing to registry...")
 			}
 
 			access := uint32(registry.AccessWrite)
@@ -178,12 +201,14 @@ func main() {
 
 			err := registry.WriteToRegistry(files[0], access)
 			if err != nil {
-				fmt.Printf("Error writing to registry: %v\n", err)
+				printError("Writing to registry: %v", err)
 				os.Exit(10)
+			}
+			if !args.quiet {
+				printSuccess("Done.")
 			}
 			return
 		}
-
 		if args.mergeFile != "" {
 			writeOutput(args.mergeFile, files[0], args.format4, exportOpts, args.quiet)
 		}
@@ -255,15 +280,14 @@ func main() {
 					}
 
 					if !args.quiet {
-						fmt.Println("Applying MERGE to registry...")
+						printInfo("Applying MERGE to registry...")
 					}
 					if err := registry.WriteToRegistry(mergeKey, access); err != nil {
-						fmt.Printf("Error writing to registry: %v\n", err)
+						printError("Writing to registry: %v", err)
 						os.Exit(10)
 					}
 				}
 			}
-
 			if args.write && args.diffFile == "" && args.mergeFile == "" {
 				mergeKey := rd.CreateMergeKeyEntry()
 				access := uint32(registry.AccessWrite)
@@ -278,10 +302,10 @@ func main() {
 				}
 
 				if !args.quiet {
-					fmt.Println("Applying changes to registry...")
+					printInfo("Applying changes to registry...")
 				}
 				if err := registry.WriteToRegistry(mergeKey, access); err != nil {
-					fmt.Printf("Error writing to registry: %v\n", err)
+					printError("Writing to registry: %v", err)
 					os.Exit(10)
 				}
 			}
@@ -291,12 +315,12 @@ func main() {
 
 func writeOutput(filename string, key *regis3.KeyEntry, format4 bool, opts regis3.ExportOptions, quiet bool) {
 	if !quiet {
-		fmt.Printf("Writing %s...\n", filename)
+		printInfo("Writing %s...", filename)
 	}
 
 	f, err := os.Create(filename)
 	if err != nil {
-		fmt.Printf("Error creating file %s: %v\n", filename, err)
+		printError("Creating file %s: %v", filename, err)
 		os.Exit(10)
 	}
 	defer f.Close()
@@ -310,15 +334,15 @@ func writeOutput(filename string, key *regis3.KeyEntry, format4 bool, opts regis
 
 	writer := regis3.NewRegWriter(header, opts, useUtf16)
 	if err := writer.Write(f, key); err != nil {
-		fmt.Printf("Error writing file %s: %v\n", filename, err)
+		printError("Writing file %s: %v", filename, err)
 		os.Exit(10)
 	}
 
 	if !quiet {
+		printSuccess("Done.")
 		fmt.Println()
 	}
 }
-
 func deriveOutputName(template, name1, name2 string) string {
 	ext := filepath.Ext(template)
 	base := strings.TrimSuffix(template, ext)
