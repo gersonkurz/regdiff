@@ -30,11 +30,9 @@ go build ./cmd/regdiff
 - Export registry keys directly to .REG files
 - Support for both ANSI (REGEDIT4) and Unicode (Windows Registry Editor Version 5.00) .REG files
 - Variable substitution with `$$VAR$$` syntax
-- Parameter files (.INI or .XML format)
+- Parameter files (.INI format)
 - Key aliasing for comparing renamed keys
 - Cross-platform .REG file processing (Windows registry access requires Windows)
-
-**Note:** XML format support (available in regdiff 4.x) has been removed in version 5.0. Use .REG files instead.
 
 ## How to compare two .REG files
 
@@ -164,17 +162,6 @@ INSTALLDIR = C:\Program Files\MyApp
 PORT = 8080
 ```
 
-### XML parameter file format
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<parameters>
-  <value name="VERSION">4.0</value>
-  <value name="INSTALLDIR">C:\Program Files\MyApp</value>
-  <value name="PORT">8080</value>
-</parameters>
-```
-
 ## Security considerations
 
 With `/WRITE`, default security attributes are used. The `/ALLACCESS` option grants full control to everyone - use with caution.
@@ -202,7 +189,7 @@ Options:
   /4                 Use REGEDIT4 format (ANSI, non-unicode)
   /COMMENTS          Allow # and ; line comments in input
   /ALIAS:FOO=BAR     Alias key names for comparison (repeatable)
-  /PARAMS:<file>     Parameter file for $$VAR$$ substitution (.ini or .xml)
+  /PARAMS:<file>     Parameter file for $$VAR$$ substitution (.ini)
   /REGISTRY          Compare input file against live registry
   /WRITE             Write result to registry (Windows only)
   /ALLACCESS         Grant all access when writing (use with /WRITE)

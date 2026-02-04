@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	modadvapi32 = windows.NewLazySystemDLL("advapi32.dll")
+	modadvapi32        = windows.NewLazySystemDLL("advapi32.dll")
 	procRegSetValueExW = modadvapi32.NewProc("RegSetValueExW")
 )
 
@@ -45,7 +45,7 @@ func WriteRegistry(root registry.Key, path string, key *regis3.KeyEntry, access 
 		return fmt.Errorf("failed to create/open key %s: %w", path, err)
 	}
 	defer k.Close()
-	
+
 	// 1. Process Values
 	for _, v := range key.Values() {
 		if v.RemoveFlag() {
@@ -54,18 +54,14 @@ func WriteRegistry(root registry.Key, path string, key *regis3.KeyEntry, access 
 			}
 			continue
 		}
-		
+
 		// Write value
-		// regis3 stores raw bytes and type. We can use SetValueEx?
-		// registry package doesn't expose SetValueEx directly for raw bytes easily
-		// except via `SetBinaryValue` (REG_BINARY) etc.
-		// But we want to preserve the exact type (e.g. REG_DWORD_BIG_ENDIAN).
-		// We should use a syscall wrapper for raw writing.
+		// regis3 stores raw bytes and type; write with a raw syscall to preserve type.
 		if err := setRawValue(k, v.Name(), v.Kind(), v.Data()); err != nil {
 			return fmt.Errorf("failed to write value %s: %w", v.Name(), err)
 		}
 	}
-	
+
 	// Default Value
 	if def := key.DefaultValue(); def != nil {
 		if def.RemoveFlag() {
@@ -80,7 +76,7 @@ func WriteRegistry(root registry.Key, path string, key *regis3.KeyEntry, access 
 	// 2. Process Subkeys
 	for _, sub := range key.SubKeys() {
 		subPath := sub.Name() // Relative name
-		
+
 		if sub.RemoveFlag() {
 			// Delete this subkey recursively
 			if err := deleteKeyRecursive(k, subPath); err != nil && err != registry.ErrNotExist {
@@ -94,81 +90,54 @@ func WriteRegistry(root registry.Key, path string, key *regis3.KeyEntry, access 
 			return err
 		}
 	}
-	
+
 	return nil
 }
 
 func deleteKeyRecursive(parent registry.Key, path string) error {
-	k, err := registry.OpenKey(parent, path, registry.ENUMERATE_SUB_KEYS | registry.QUERY_VALUE | windows.KEY_SET_VALUE)
+	k, err := registry.OpenKey(parent, path, registry.ENUMERATE_SUB_KEYS|registry.QUERY_VALUE|windows.KEY_SET_VALUE)
 	if err != nil {
 		return err
 	}
 	defer k.Close()
-	
+
 	// Delete all subkeys first
 	subKeys, err := k.ReadSubKeyNames(0)
 	if err != nil {
 		return err
 	}
-	
+
 	for _, sub := range subKeys {
 		if err := deleteKeyRecursive(k, sub); err != nil {
 			return err
 		}
 	}
-	
+
 	// Close key before deleting it (parent deletes child)
 	k.Close()
-	
+
 	return registry.DeleteKey(parent, path)
 }
 
 // setRawValue writes raw bytes with specific type
-
 func setRawValue(k registry.Key, name string, valType uint32, data []byte) error {
-
-	// registry.SetValue not available, use syscall wrapper
-
 	ptrName, err := windows.UTF16PtrFromString(name)
-
 	if err != nil {
-
 		return err
-
 	}
-
-	
 
 	// Data pointer
-
 	var ptrData *byte
-
 	if len(data) > 0 {
-
 		ptrData = &data[0]
-
 	}
 
-	
-
 	return regSetValueEx(
-
 		windows.Handle(k),
-
 		ptrName,
-
 		0,
-
 		valType,
-
 		ptrData,
-
 		uint32(len(data)),
-
 	)
-
 }
-
-
-
-

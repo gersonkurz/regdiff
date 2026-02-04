@@ -1,0 +1,19 @@
+flowchart LR
+    A[CLI args<br/>cmd/regdiff] --> B{Input type?}
+    B -->|.REG file| C[go-regis3 ParseFile<br/>KeyEntry tree]
+    B -->|Registry path| D[internal/registry<br/>ReadRegistryPath]
+    B -->|/REGISTRY| E[internal/registry<br/>LoadLiveRegistry]
+
+    C --> F[diff.NewRegDiff<br/>collect mismatches]
+    D --> F
+    E --> F
+
+    F --> G{Output mode}
+    G -->|/DIFF| H[CreateDiffKeyEntry]
+    G -->|/MERGE| I[CreateMergeKeyEntry]
+    G -->|/WRITE only| I
+
+    H --> J[go-regis3 RegWriter<br/>.REG output]
+    I --> J
+    H --> K[internal/registry<br/>WriteToRegistry]
+    I --> K

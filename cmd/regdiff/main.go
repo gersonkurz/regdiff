@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/gersonkurz/go-regdiff/diff"
@@ -24,7 +25,7 @@ type cliArgs struct {
 	comments    bool
 	nocase      bool // Not used explicitly as go-regis3 is case-insensitive by default
 	paramsFile  string
-	
+
 	// Registry flags
 	useRegistry bool
 	write       bool
@@ -132,7 +133,7 @@ func main() {
 
 		files = append(files, key)
 	}
-	
+
 	// If /REGISTRY is specified, we compare the first file against the live registry.
 	if args.useRegistry {
 		if len(files) != 1 {
@@ -163,12 +164,18 @@ func main() {
 			if !args.quiet {
 				fmt.Println("Writing to registry...")
 			}
-		
-		access := uint32(registry.AccessWrite)
-		if args.view32 { access |= registry.View32 }
-		if args.view64 { access |= registry.View64 }
-		if args.allAccess { access |= registry.AccessAll }
-		
+
+			access := uint32(registry.AccessWrite)
+			if args.view32 {
+				access |= registry.View32
+			}
+			if args.view64 {
+				access |= registry.View64
+			}
+			if args.allAccess {
+				access |= registry.AccessAll
+			}
+
 			err := registry.WriteToRegistry(files[0], access)
 			if err != nil {
 				fmt.Printf("Error writing to registry: %v\n", err)
@@ -176,7 +183,7 @@ func main() {
 			}
 			return
 		}
-		
+
 		if args.mergeFile != "" {
 			writeOutput(args.mergeFile, files[0], args.format4, exportOpts, args.quiet)
 		}
@@ -192,22 +199,34 @@ func main() {
 			name2 := filenames[j]
 
 			rd := diff.NewRegDiff(f1, name1, f2, name2, aliasMap)
-			
+
 			if !args.quiet {
 				fmt.Println(rd.String())
 			}
 
 			if args.diffFile != "" {
 				diffKey := rd.CreateDiffKeyEntry()
-				writeOutput(args.diffFile, diffKey, args.format4, exportOpts, args.quiet)
-				
+				diffOut := args.diffFile
+				if len(files) > 2 {
+					diffOut = deriveOutputName(args.diffFile, name1, name2)
+				}
+				writeOutput(diffOut, diffKey, args.format4, exportOpts, args.quiet)
+
 				if args.write {
 					access := uint32(registry.AccessWrite)
-					if args.view32 { access |= registry.View32 }
-					if args.view64 { access |= registry.View64 }
-					if args.allAccess { access |= registry.AccessAll }
-					
-					if !args.quiet { fmt.Println("Applying DIFF to registry...") }
+					if args.view32 {
+						access |= registry.View32
+					}
+					if args.view64 {
+						access |= registry.View64
+					}
+					if args.allAccess {
+						access |= registry.AccessAll
+					}
+
+					if !args.quiet {
+						fmt.Println("Applying DIFF to registry...")
+					}
 					if err := registry.WriteToRegistry(diffKey, access); err != nil {
 						fmt.Printf("Error writing to registry: %v\n", err)
 						os.Exit(10)
@@ -217,30 +236,50 @@ func main() {
 
 			if args.mergeFile != "" {
 				mergeKey := rd.CreateMergeKeyEntry()
-				writeOutput(args.mergeFile, mergeKey, args.format4, exportOpts, args.quiet)
-				
+				mergeOut := args.mergeFile
+				if len(files) > 2 {
+					mergeOut = deriveOutputName(args.mergeFile, name1, name2)
+				}
+				writeOutput(mergeOut, mergeKey, args.format4, exportOpts, args.quiet)
+
 				if args.write && args.diffFile == "" {
 					access := uint32(registry.AccessWrite)
-					if args.view32 { access |= registry.View32 }
-					if args.view64 { access |= registry.View64 }
-					if args.allAccess { access |= registry.AccessAll }
-					
-					if !args.quiet { fmt.Println("Applying MERGE to registry...") }
+					if args.view32 {
+						access |= registry.View32
+					}
+					if args.view64 {
+						access |= registry.View64
+					}
+					if args.allAccess {
+						access |= registry.AccessAll
+					}
+
+					if !args.quiet {
+						fmt.Println("Applying MERGE to registry...")
+					}
 					if err := registry.WriteToRegistry(mergeKey, access); err != nil {
 						fmt.Printf("Error writing to registry: %v\n", err)
 						os.Exit(10)
 					}
 				}
 			}
-			
+
 			if args.write && args.diffFile == "" && args.mergeFile == "" {
 				mergeKey := rd.CreateMergeKeyEntry()
 				access := uint32(registry.AccessWrite)
-				if args.view32 { access |= registry.View32 }
-				if args.view64 { access |= registry.View64 }
-				if args.allAccess { access |= registry.AccessAll }
-				
-				if !args.quiet { fmt.Println("Applying changes to registry...") }
+				if args.view32 {
+					access |= registry.View32
+				}
+				if args.view64 {
+					access |= registry.View64
+				}
+				if args.allAccess {
+					access |= registry.AccessAll
+				}
+
+				if !args.quiet {
+					fmt.Println("Applying changes to registry...")
+				}
 				if err := registry.WriteToRegistry(mergeKey, access); err != nil {
 					fmt.Printf("Error writing to registry: %v\n", err)
 					os.Exit(10)
@@ -274,10 +313,34 @@ func writeOutput(filename string, key *regis3.KeyEntry, format4 bool, opts regis
 		fmt.Printf("Error writing file %s: %v\n", filename, err)
 		os.Exit(10)
 	}
-	
+
 	if !quiet {
 		fmt.Println()
 	}
+}
+
+func deriveOutputName(template, name1, name2 string) string {
+	ext := filepath.Ext(template)
+	base := strings.TrimSuffix(template, ext)
+	return fmt.Sprintf("%s-%s-vs-%s%s", base, sanitizeName(name1), sanitizeName(name2), ext)
+}
+
+func sanitizeName(name string) string {
+	base := filepath.Base(name)
+	base = strings.ReplaceAll(base, "\\", "_")
+	base = strings.ReplaceAll(base, "/", "_")
+	var b strings.Builder
+	for _, r := range base {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == '-' || r == '.' {
+			b.WriteRune(r)
+		} else {
+			b.WriteRune('_')
+		}
+	}
+	if b.Len() == 0 {
+		return "input"
+	}
+	return b.String()
 }
 
 func parseArgs() *cliArgs {
@@ -425,7 +488,7 @@ func printUsage() {
 	fmt.Println("  /4                 Use REGEDIT4 format (ANSI, non-unicode)")
 	fmt.Println("  /COMMENTS          Allow # and ; line comments in input")
 	fmt.Println("  /ALIAS:FOO=BAR     Alias key names for comparison (repeatable)")
-	fmt.Println("  /PARAMS:<file>     Parameter file for $$VAR$$ substitution (.ini or .xml)")
+	fmt.Println("  /PARAMS:<file>     Parameter file for $$VAR$$ substitution (.ini)")
 	fmt.Println("  /REGISTRY          Compare input file against live registry")
 	fmt.Println("  /WRITE             Write result to registry (Windows only)")
 	fmt.Println("  /ALLACCESS         Grant all access when writing (use with /WRITE)")

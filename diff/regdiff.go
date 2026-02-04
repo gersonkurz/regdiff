@@ -11,11 +11,11 @@ import (
 
 // RegDiff orchestrates the comparison of two registry trees.
 type RegDiff struct {
-	Key1      *regis3.KeyEntry
-	Name1     string
-	Key2      *regis3.KeyEntry
-	Name2     string
-	Aliases   map[string]string // lowercase key -> target name
+	Key1       *regis3.KeyEntry
+	Name1      string
+	Key2       *regis3.KeyEntry
+	Name2      string
+	Aliases    map[string]string // lowercase key -> target name
 	Mismatches []Mismatch
 }
 
@@ -28,7 +28,7 @@ func NewRegDiff(key1 *regis3.KeyEntry, name1 string, key2 *regis3.KeyEntry, name
 		Name2:   name2,
 		Aliases: make(map[string]string),
 	}
-	
+
 	// Normalize aliases to lowercase and make them bidirectional
 	for k, v := range aliases {
 		kl := strings.ToLower(k)
@@ -61,7 +61,9 @@ func (rd *RegDiff) CompareRecursive(k1, k2 *regis3.KeyEntry) {
 
 	// Keys in 1
 	var names1 []string
-	for n := range vals1 { names1 = append(names1, n) }
+	for n := range vals1 {
+		names1 = append(names1, n)
+	}
 	sort.Strings(names1)
 
 	for _, n := range names1 {
@@ -75,7 +77,9 @@ func (rd *RegDiff) CompareRecursive(k1, k2 *regis3.KeyEntry) {
 
 	// Keys in 2 (new ones)
 	var names2 []string
-	for n := range vals2 { names2 = append(names2, n) }
+	for n := range vals2 {
+		names2 = append(names2, n)
+	}
 	sort.Strings(names2)
 
 	for _, n := range names2 {
@@ -90,17 +94,19 @@ func (rd *RegDiff) CompareRecursive(k1, k2 *regis3.KeyEntry) {
 
 	// Subkeys in 1
 	var skNames1 []string
-	for n := range sub1 { skNames1 = append(skNames1, n) }
+	for n := range sub1 {
+		skNames1 = append(skNames1, n)
+	}
 	sort.Strings(skNames1)
 
 	for _, n := range skNames1 {
 		s1 := sub1[n]
-		
+
 		// Check for path-level alias or direct match
 		path1 := s1.GetPath()
 		var s2 *regis3.KeyEntry
 		var exists bool
-		
+
 		// 1. Direct match
 		if s2, exists = sub2[n]; exists {
 			// Found
@@ -114,7 +120,7 @@ func (rd *RegDiff) CompareRecursive(k1, k2 *regis3.KeyEntry) {
 					continue
 				}
 			}
-			
+
 			// 3. Token-level alias fallback
 			if alias, hasAlias := rd.Aliases[n]; hasAlias {
 				if s2a, existsA := sub2[alias]; existsA {
@@ -125,14 +131,8 @@ func (rd *RegDiff) CompareRecursive(k1, k2 *regis3.KeyEntry) {
 		}
 
 		if exists {
-			// Check for Delete Marker in s2
+			// Treat "remove" markers in tree 2 as missing from tree 2.
 			if s2.RemoveFlag() {
-				// s2 says "delete me".
-				// In Diff: This is a change. We need to record that s1 should be removed.
-				// Add mismatch MissingKeyIn2 (Key missing in 2 -> remove from result).
-				// Wait, MissingKeyIn2 means "It is in 1, but not in 2".
-				// Here it IS in 2, but marked for deletion.
-				// Semantically equivalent to "not in 2".
 				rd.addMismatch(MissingKeyIn2, s1, nil, nil)
 			} else {
 				rd.CompareRecursive(s1, s2)
@@ -144,13 +144,15 @@ func (rd *RegDiff) CompareRecursive(k1, k2 *regis3.KeyEntry) {
 
 	// Subkeys in 2 (new ones)
 	var skNames2 []string
-	for n := range sub2 { skNames2 = append(skNames2, n) }
+	for n := range sub2 {
+		skNames2 = append(skNames2, n)
+	}
 	sort.Strings(skNames2)
 
 	for _, n := range skNames2 {
 		if _, exists := sub1[n]; !exists {
 			// Check Aliases
-			
+
 			// 1. Path-level alias
 			path2 := sub2[n].GetPath()
 			if aliasTarget, hasAlias := rd.Aliases[strings.ToLower(path2)]; hasAlias {
@@ -176,26 +178,26 @@ func (rd *RegDiff) findKeyByPath(root *regis3.KeyEntry, path string) *regis3.Key
 	// We need to handle if root name is part of path or not?
 	// GetPath returns full path including root name.
 	// If path is "HKEY_CURRENT_USER\Software\...", and root is "HKEY_CURRENT_USER".
-	
+
 	// Normalize separators
 	path = strings.ReplaceAll(path, "/", "\\")
-	
+
 	// Check if path starts with root name
 	if strings.EqualFold(root.Name(), path) {
 		return root
 	}
-	
+
 	prefix := root.Name() + "\\"
 	if len(root.Name()) > 0 && strings.HasPrefix(strings.ToLower(path), strings.ToLower(prefix)) {
 		relPath := path[len(prefix):]
 		return root.FindKey(relPath)
 	}
-	
+
 	// If root is nameless (meta-root), try direct
 	if root.Name() == "" {
 		return root.FindKey(path)
 	}
-	
+
 	return nil
 }
 
@@ -244,7 +246,7 @@ func (rd *RegDiff) CreateDiffKeyEntry() *regis3.KeyEntry {
 func (rd *RegDiff) CreateMergeKeyEntry() *regis3.KeyEntry {
 	// Start with Clone of File 2
 	result := rd.Key2.Clone(nil)
-	
+
 	// Apply removals from File 1 (items in 1 missing in 2)
 	for _, m := range rd.Mismatches {
 		if m.Category == MissingKeyIn2 {

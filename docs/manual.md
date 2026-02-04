@@ -17,7 +17,7 @@ regdiff is freeware under the MIT license (free for any use including commercial
 - Compare, diff and merge the live Windows registry
 - Support for both ANSI (REGEDIT4) and Unicode (Windows Registry Editor Version 5.00) formats
 - Variable substitution with `$$VAR$$` syntax
-- Parameter files in .INI or .XML format
+- Parameter files in .INI format
 
 ## How to compare two .REG files
 
@@ -159,24 +159,12 @@ Invalid examples:
 Variables can be defined via:
 
 - Environment variables
-- XML parameter files
 - INI parameter files
 
 Use the `/PARAMS` option to specify a parameter file:
 
 ```
 regdiff settings.reg /WRITE /PARAMS:variables.xml
-```
-
-### XML parameter file format
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<values>
-  <value name="VERSION">5.0</value>
-  <value name="CONFIGURATION">production</value>
-  <value name="OPTIONVALUE">example</value>
-</values>
 ```
 
 ### INI parameter file format

@@ -33,13 +33,13 @@ func ParseRegistry(root registry.Key, path string, access uint32) (*regis3.KeyEn
 	if name == "" {
 		name = rootKeyName(root)
 	}
-	
+
 	keyEntry := regis3.NewKeyEntry(nil, name)
-	
+
 	if err := walkRegistry(k, keyEntry, access); err != nil {
 		return nil, err
 	}
-	
+
 	return keyEntry, nil
 }
 
@@ -49,7 +49,7 @@ func walkRegistry(k registry.Key, entry *regis3.KeyEntry, access uint32) error {
 	if err != nil {
 		return err
 	}
-	
+
 	for _, name := range valNames {
 		// Read value content using queryValue helper which handles allocation and type retrieval
 		valBytes, valType, err := queryValue(k, name)
@@ -59,7 +59,7 @@ func walkRegistry(k registry.Key, entry *regis3.KeyEntry, access uint32) error {
 
 		// Create ValueEntry
 		valEntry := entry.FindOrCreateValue(name)
-		
+
 		// Map Windows type to regis3 type and set data
 		// regis3 types match Windows API constants mostly.
 		valEntry.SetBinaryType(valType, valBytes)
@@ -70,19 +70,17 @@ func walkRegistry(k registry.Key, entry *regis3.KeyEntry, access uint32) error {
 	if err != nil {
 		return err
 	}
-	
+
 	for _, subName := range subKeyNames {
 		subK, err := registry.OpenKey(k, subName, access|registry.READ)
 		if err != nil {
-			// Permission denied or gone?
-			// Should we warn or fail?
-			// "Access is denied" is common. 
-			// We probably want to skip keys we can't read?
-			// C# implementation usually stops or logs error?
-			// Let's wrap error but continue if possible? No, standard recursive walk fails.
+			if strings.Contains(err.Error(), "Access is denied") || err == registry.ErrNotExist {
+				fmt.Printf("Warning: skipping registry key %s (cannot open: %v)\n", subName, err)
+				continue
+			}
 			return fmt.Errorf("failed to open subkey %s: %w", subName, err)
 		}
-		
+
 		subEntry := entry.FindOrCreateKey(subName)
 		err = walkRegistry(subK, subEntry, access)
 		subK.Close()
@@ -90,7 +88,7 @@ func walkRegistry(k registry.Key, entry *regis3.KeyEntry, access uint32) error {
 			return err
 		}
 	}
-	
+
 	return nil
 }
 
@@ -98,31 +96,40 @@ func queryValue(k registry.Key, name string) ([]byte, uint32, error) {
 	// Query size first
 	var size uint32
 	var valType uint32
-	
+
 	// We use windows.RegQueryValueEx directly to get size
 	// handle is k
-	
+
 	ptrName, _ := windows.UTF16PtrFromString(name)
 	err := windows.RegQueryValueEx(windows.Handle(k), ptrName, nil, &valType, nil, &size)
 	if err != nil {
 		return nil, 0, err
 	}
-	
+
+	if size == 0 {
+		return []byte{}, valType, nil
+	}
+
 	buf := make([]byte, size)
 	err = windows.RegQueryValueEx(windows.Handle(k), ptrName, nil, &valType, &buf[0], &size)
 	if err != nil {
 		return nil, 0, err
 	}
-	
+
 	return buf, valType, nil
 }
 func rootKeyName(k registry.Key) string {
 	switch k {
-	case registry.CLASSES_ROOT: return "HKEY_CLASSES_ROOT"
-	case registry.CURRENT_USER: return "HKEY_CURRENT_USER"
-	case registry.LOCAL_MACHINE: return "HKEY_LOCAL_MACHINE"
-	case registry.USERS: return "HKEY_USERS"
-	case registry.CURRENT_CONFIG: return "HKEY_CURRENT_CONFIG"
+	case registry.CLASSES_ROOT:
+		return "HKEY_CLASSES_ROOT"
+	case registry.CURRENT_USER:
+		return "HKEY_CURRENT_USER"
+	case registry.LOCAL_MACHINE:
+		return "HKEY_LOCAL_MACHINE"
+	case registry.USERS:
+		return "HKEY_USERS"
+	case registry.CURRENT_CONFIG:
+		return "HKEY_CURRENT_CONFIG"
 	}
 	return "HKEY_UNKNOWN"
 }
